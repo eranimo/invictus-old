@@ -1,6 +1,11 @@
 {
   "parser": "babel-eslint",
-  "extends": "standard",
+  "extends": [
+    "eslint:recommended"
+  ],
+  "plugins": [
+    "import"
+  ],
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module"
@@ -9,12 +14,14 @@
     "browser": true
   },
   "rules": {
-    "import/no-unresolved": [2]
+    "import/no-unresolved": [2],
+    "semi": 1
   },
   "globals": {
     "phaser": true
   },
   "settings": {
+    "semi": ["always"],
     "import/core-modules": [ "phaser", "pixi", "p2" ]
   }
 }
