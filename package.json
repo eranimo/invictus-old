@@ -28,7 +28,9 @@
     "webpack": "^2.5.1"
   },
   "dependencies": {
+    "css-loader": "^0.28.4",
     "phaser-ce": "^2.7.9",
+    "style-loader": "^0.18.2",
     "webfontloader": "^1.6.27"
   }
 }
