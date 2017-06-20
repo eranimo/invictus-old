@@ -23,7 +23,12 @@ class Game extends Phaser.Game {
     this.state.add('Game', GameState, false);
     this.state.add('Map', MapState, false);
 
-    this.state.start('Boot');
+    this.state.start('Boot');    
+  }
+
+  reload() {
+    this.renderer.renderSession.roundPixels = true;
+    Phaser.Canvas.setImageRenderingCrisp(this.canvas);
 
     window.addEventListener('resize', this.updateGameSize.bind(this));
     window.addEventListener('touchmove', this.updateGameSize.bind(this));

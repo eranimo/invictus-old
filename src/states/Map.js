@@ -45,6 +45,7 @@ export default class Map extends Phaser.State {
       x: 0,
       y: 0,
     };
+    this.uiScale = 2;
   }
 
   @time
@@ -100,33 +101,22 @@ export default class Map extends Phaser.State {
         gridMap.line(0, y * cellSize, width, y * cellSize, '#000');
       }
     }
-    const gridSprite = this.game.add.sprite(mask.left, mask.top, gridMap);
+    const gridSprite = this.game.add.sprite(0.5, 0, gridMap);
     gridSprite.smoothed = false;
     return gridSprite;
   }
 
-  makeRegionCursor() {
-    const cursorMap = this.game.add.bitmapData(this.size, this.size);
-    cursorMap.context.strokeStyle = '#FF0000';
-    cursorMap.context.rect(
-      1,
-      1,
-      (this.regionSize * 2) - 2,
-      (this.regionSize * 2) - 2,
-    );
-    cursorMap.context.stroke();
-    this.worldMapCursor = this.game.add.sprite(this.size, this.size, cursorMap);
-    this.worldMapCursor.smoothed = false;
-    this.updateRegionCursor();
-  }
-
   updateRegionCursor() {
-    this.worldMapCursor.left = 10 + this.activeRegion.x * this.regionSize * 2;
-    this.worldMapCursor.top = 10 + this.activeRegion.y * this.regionSize * 2;
+    this.worldMapCursor.left = this.activeRegion.x * (this.regionSize * this.uiScale);
+    this.worldMapCursor.top = this.activeRegion.y * (this.regionSize * this.uiScale);
   }
 
   create() {
     // go back to the game
+    const ui = this.game.add.group();
+    ui.smoothed = false;
+    this.game.camera.bounds = null;
+
     const mapKey = this.game.input.keyboard.addKey(Phaser.Keyboard.M);
     const refreshKey = this.game.input.keyboard.addKey(Phaser.Keyboard.R);
     mapKey.onUp.add(() => {
@@ -138,9 +128,9 @@ export default class Map extends Phaser.State {
     this.makeMap();
     this.makeRegion();
 
-    this.worldMap = this.game.add.sprite(10, 10, this.worldMapData);
-    this.worldMap.smoothed = false;
-    this.worldMap.scale.set(2);
+    this.worldMap = this.game.add.sprite(0, 0, this.worldMapData);
+    ui.add(this.worldMap);
+    this.worldMap.scale.set(this.uiScale);
 
     const grid = this.makeGrid(this.worldMap, this.regionScale, (x, y) => {
       return this.activeRegion.x === x && this.activeRegion.y === y;
@@ -157,16 +147,28 @@ export default class Map extends Phaser.State {
     grid.inputEnabled = true;
     grid.pixelPerfectClick = true;
     grid.useHandCursor = true;
+    ui.add(grid);
 
-    this.regionMap = this.game.add.sprite(10 + this.worldMap.width, 10, this.regionMapData);
-    this.regionMap.smoothed = false;
-    this.regionMap.scale.set(2);
+    this.regionMap = this.game.add.sprite(this.worldMap.width, 0, this.regionMapData);
+    this.regionMap.scale.set(this.uiScale);
+    ui.add(this.regionMap);
 
     refreshKey.onUp.add(() => {
       this.seed = Math.random();
       this.makeMap();
     });
 
-    this.makeRegionCursor();
+    const cursorMap = this.game.add.bitmapData(this.size, this.size);
+    cursorMap.context.strokeStyle = '#FF0000';
+    cursorMap.context.rect(
+      2,
+      2,
+      (this.regionSize * this.uiScale) - 2,
+      (this.regionSize * this.uiScale) - 3,
+    );
+    cursorMap.context.stroke();
+    this.worldMapCursor = this.game.add.sprite(0, 0, cursorMap);
+    ui.add(this.worldMapCursor);
+    this.updateRegionCursor();
   }
 }
