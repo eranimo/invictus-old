@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import BootState from './states/Boot';
 import SplashState from './states/Splash';
 import GameState from './states/Game';
+import MapState from './states/Map';
 
 import config from './config';
 import './style.css';
@@ -20,8 +21,16 @@ class Game extends Phaser.Game {
     this.state.add('Boot', BootState, false);
     this.state.add('Splash', SplashState, false);
     this.state.add('Game', GameState, false);
+    this.state.add('Map', MapState, false);
 
     this.state.start('Boot');
+
+    window.addEventListener('resize', this.updateGameSize.bind(this));
+    window.addEventListener('touchmove', this.updateGameSize.bind(this));
+  }
+
+  updateGameSize() {
+    this.scale.setGameSize(window.innerWidth, window.innerHeight);
   }
 }
 

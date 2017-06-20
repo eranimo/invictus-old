@@ -1,7 +1,7 @@
 /* globals __DEV__ */
 import Phaser from 'phaser';
 
-export default class extends Phaser.State {
+export default class Game extends Phaser.State {
   init () {}
   preload () {}
 
@@ -39,6 +39,11 @@ export default class extends Phaser.State {
       'down': Phaser.KeyCode.S,
       'left': Phaser.KeyCode.A,
       'right': Phaser.KeyCode.D
+    });
+
+    const mapKey = this.game.input.keyboard.addKey(Phaser.Keyboard.M);
+    mapKey.onUp.add(() => {
+      this.state.start('Map');
     });
   }
 
