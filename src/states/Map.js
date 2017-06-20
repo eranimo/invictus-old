@@ -4,6 +4,7 @@ import Alea from 'alea';
 import { time } from 'core-decorators';
 
 
+// https://cmaher.github.io/posts/working-with-simplex-noise/
 const zoomableNoise = noise => (numIterations, nx, ny, persistence, scale) => {
   // persistence is the scale factor in each iteration
   let maxAmp = 0;
@@ -46,6 +47,7 @@ export default class Map extends Phaser.State {
       y: 0,
     };
     this.uiScale = 2;
+    console.log(this);
   }
 
   @time
@@ -58,8 +60,8 @@ export default class Map extends Phaser.State {
       for (let y = 0; y < this.size; y++) {
         const nx = x / this.size - 0.5;
         const ny = y / this.size - 0.5;
-        let height = zoomableNoise(noise)(5, nx, ny, .5, 4);
-        height = contour(height);
+        let height = zoomableNoise(noise)(5, nx, ny, .55, 2);
+        height = contour(height, 10);
         this.worldMapData.setPixel(x, y, height, height, height, false);
       }
     }
@@ -80,7 +82,7 @@ export default class Map extends Phaser.State {
       for (let y = 0; y < this.regionSize * this.regionScale; y++) {
         const nx = ((x + offsetX) / this.regionScale) / this.size - 0.5;
         const ny = ((y + offsetY) / this.regionScale) / this.size - 0.5;
-        let height = zoomableNoise(noise)(25, nx, ny, .51, 4);
+        let height = zoomableNoise(noise)(25, nx, ny, .6, 2);
         height = contour(height, 5);
         this.regionMapData.setPixel(x, y, height, height, height, false);
       }
@@ -129,6 +131,7 @@ export default class Map extends Phaser.State {
     this.makeRegion();
 
     this.worldMap = this.game.add.sprite(0, 0, this.worldMapData);
+    this.worldMap.smoothed = false;
     ui.add(this.worldMap);
     this.worldMap.scale.set(this.uiScale);
 
@@ -151,11 +154,13 @@ export default class Map extends Phaser.State {
 
     this.regionMap = this.game.add.sprite(this.worldMap.width, 0, this.regionMapData);
     this.regionMap.scale.set(this.uiScale);
+    this.regionMap.smoothed = false;
     ui.add(this.regionMap);
 
     refreshKey.onUp.add(() => {
       this.seed = Math.random();
       this.makeMap();
+      this.makeRegion();
     });
 
     const cursorMap = this.game.add.bitmapData(this.size, this.size);
