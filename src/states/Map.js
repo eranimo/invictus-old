@@ -48,6 +48,17 @@ export default class Map extends Phaser.State {
     };
     this.uiScale = 2;
     this.gridAlpha = 1;
+    this.activeView = 0;
+    this.views = [
+      {
+        name: 'Heightmap',
+        fn: (height) => contour(height, 10),
+      },
+      {
+        name: 'Sea Level',
+        fn: (height) => coastline(height),
+      }
+    ];
     console.log(this);
   }
 
@@ -62,7 +73,7 @@ export default class Map extends Phaser.State {
         const nx = x / this.size - 0.5;
         const ny = y / this.size - 0.5;
         let height = zoomableNoise(noise)(5, nx, ny, .55, 2);
-        height = contour(height, 10);
+        height = this.views[this.activeView].fn(height);
         this.worldMapData.setPixel(x, y, height, height, height, false);
       }
     }
@@ -84,7 +95,7 @@ export default class Map extends Phaser.State {
         const nx = ((x + offsetX) / this.regionScale) / this.size - 0.5;
         const ny = ((y + offsetY) / this.regionScale) / this.size - 0.5;
         let height = zoomableNoise(noise)(25, nx, ny, .6, 2);
-        height = contour(height, 5);
+        height = this.views[this.activeView].fn(height);
         this.regionMapData.setPixel(x, y, height, height, height, false);
       }
     }
@@ -124,6 +135,7 @@ export default class Map extends Phaser.State {
       map: Phaser.Keyboard.M,
       refresh: Phaser.Keyboard.R,
       grid: Phaser.Keyboard.G,
+      view: Phaser.Keyboard.V,
     });
     keys.map.onUp.add(() => {
       console.log('Go to Game');
@@ -132,6 +144,12 @@ export default class Map extends Phaser.State {
     keys.grid.onUp.add(() => {
       console.log('hide grid');
       this.gridAlpha = this.gridAlpha ? 0 : 1;
+    });
+    keys.view.onUp.add(() => {
+      console.log('change view');
+      this.activeView = (this.activeView + 1) % this.views.length;
+      this.makeMap();
+      this.makeRegion();
     });
 
     this.worldMapData = this.game.add.bitmapData(this.size, this.size);
