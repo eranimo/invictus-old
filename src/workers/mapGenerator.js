@@ -34,13 +34,13 @@ const zoomableNoise = noise => ({ numIterations, persistence, initFrequency }) =
 const levels = {
   world: {
     numIterations: 5,
-    persistence: 0.55,
+    persistence: 0.6,
     initFrequency: 2,
     transform: (x, y) => [x, y],
   },
   region: {
     numIterations: 25,
-    persistence: 0.6,
+    persistence: 0.61,
     initFrequency: 2,
     transform(x, y, position) {
       const nx = (x + position.region.x) / 10;
@@ -49,8 +49,8 @@ const levels = {
     }
   },
   local: {
-    numIterations: 25,
-    persistence: 0.6,
+    numIterations: 35,
+    persistence: 0.62,
     initFrequency: 2,
     transform(x, y, position) {
       const nx = (x + position.local.x) / 100;
