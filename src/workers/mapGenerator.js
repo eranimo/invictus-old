@@ -54,9 +54,6 @@ function makeHeightmap({ seed, size, level, offset = { x: 0, y: 0 } }) {
   const noise = (nx, ny) => simplex.noise2D(nx, ny) / 2 + 0.5;
   const options = levels[level];
 
-  console.log('level', options);
-  console.log('offset', offset);
-
   fill(heightmap, (x, y) => {
     const nx = ((x + offset.x) / options.zoomScale) / size - 0.5;
     const ny = ((y + offset.y) / options.zoomScale) / size - 0.5;

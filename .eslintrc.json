@@ -16,13 +16,15 @@
   },
   "rules": {
     "import/no-unresolved": [2],
-    "semi": 1
+    "semi": 1,
+    "no-console": 0
   },
   "globals": {
     "phaser": true
   },
   "settings": {
     "semi": ["always"],
+    "import/resolver": "webpack",
     "import/core-modules": [ "phaser", "pixi", "p2" ]
   }
 }

@@ -1,6 +1,4 @@
 import Phaser from 'phaser';
-import SimplexNoise from 'simplex-noise';
-import Alea from 'alea';
 import { time } from 'core-decorators';
 import MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
@@ -34,7 +32,6 @@ export default class Map extends Phaser.State {
         fn: (height) => coastline(height),
       }
     ];
-    console.log(this);
 
     this.mapLevels = {
       world: null,
@@ -59,9 +56,6 @@ export default class Map extends Phaser.State {
       });
       mapGenerator.addEventListener('message', event => {
         const heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
-
-        console.log('D', event.data);
-
         resolve(heightmap);
       });
     });
@@ -116,6 +110,8 @@ export default class Map extends Phaser.State {
       this.generateMap('region', this.activeRegion)
     ])
       .then(([worldData, regionData]) => {
+        this.worldData = worldData;
+        this.regionData = regionData;
         this.renderMap(worldData, this.worldMapData);
         this.renderMap(regionData, this.regionMapData);
       });
@@ -144,7 +140,8 @@ export default class Map extends Phaser.State {
     keys.view.onUp.add(() => {
       console.log('change view');
       this.activeView = (this.activeView + 1) % this.views.length;
-      this.regen();
+      this.renderMap(this.worldData, this.worldMapData);
+      this.renderMap(this.regionData, this.regionMapData);
     });
 
     this.worldMapData = this.game.add.bitmapData(this.size, this.size);
