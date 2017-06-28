@@ -2,34 +2,9 @@ import Phaser from 'phaser';
 import SimplexNoise from 'simplex-noise';
 import Alea from 'alea';
 import { time } from 'core-decorators';
+import MapGenerator from 'worker-loader!../workers/mapGenerator';
+import ndarray from 'ndarray';
 
-
-// https://cmaher.github.io/posts/working-with-simplex-noise/
-const zoomableNoise = noise => (numIterations, nx, ny, persistence, scale) => {
-  // persistence is the scale factor in each iteration
-  let maxAmp = 0;
-  let amp = 1; // relative importance of the octave in the sum of the octaves
-  let freq = scale;
-  let noiseValue = 0;
-  const low = 0;
-  const high = 255;
-
-  // add successively smaller, higher-frequency terms
-  for (let i = 0; i < numIterations; ++i) {
-    noiseValue += noise(nx * freq, ny * freq) * amp;
-    maxAmp += amp;
-    amp *= persistence;
-    freq *= 2;
-  }
-
-  // take the average value of the iterations
-  noiseValue /= maxAmp;
-
-  // normalize the result
-  noiseValue = noiseValue * (high - low) / 2 + (high + low) / 2;
-
-  return noiseValue;
-};
 
 const contour = (value, c = 10) => Math.ceil(value / c) * c;
 const coastline = value => value < 200 ? 0 : 255;
@@ -60,48 +35,58 @@ export default class Map extends Phaser.State {
       }
     ];
     console.log(this);
+
+    this.mapLevels = {
+      world: null,
+      region: null,
+    };
   }
 
   @time
-  makeMap() {
-    const rng = new Alea(this.seed);
-    const simplex = new SimplexNoise(rng);
-    const noise = (nx, ny) => simplex.noise2D(nx, ny) / 2 + 0.5;
+  async generateMap(level, offset) {
+    return new Promise((resolve) => {
+      const mapGenerator = new MapGenerator();
+      mapGenerator.postMessage({
+        heightmap: {
+          seed: this.seed,
+          size: this.size,
+          level,
+          offset: offset && {
+            x: offset.x * this.size,
+            y: offset.y * this.size,
+          },
+        },
+      });
+      mapGenerator.addEventListener('message', event => {
+        const heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
 
-    for (let x = 0; x < this.size; x++) {
-      for (let y = 0; y < this.size; y++) {
-        const nx = x / this.size - 0.5;
-        const ny = y / this.size - 0.5;
-        let height = zoomableNoise(noise)(5, nx, ny, .55, 2);
-        height = this.views[this.activeView].fn(height);
-        this.worldMapData.setPixel(x, y, height, height, height, false);
-      }
-    }
+        console.log('D', event.data);
 
-    this.worldMapData.context.putImageData(this.worldMapData.imageData, 0, 0);
-    this.worldMapData.dirty = true;
+        resolve(heightmap);
+      });
+    });
   }
 
   @time
-  makeRegion() {
-    const rng = new Alea(this.seed);
-    const simplex = new SimplexNoise(rng);
-    const noise = (nx, ny) => simplex.noise2D(nx, ny) / 2 + 0.5;
-    // region map
-    const offsetX = this.size * this.activeRegion.x;
-    const offsetY = this.size * this.activeRegion.y;
-    for (let x = 0; x < this.regionSize * this.regionScale; x++) {
-      for (let y = 0; y < this.regionSize * this.regionScale; y++) {
-        const nx = ((x + offsetX) / this.regionScale) / this.size - 0.5;
-        const ny = ((y + offsetY) / this.regionScale) / this.size - 0.5;
-        let height = zoomableNoise(noise)(25, nx, ny, .6, 2);
-        height = this.views[this.activeView].fn(height);
-        this.regionMapData.setPixel(x, y, height, height, height, false);
+  renderMap(data, bitmapData) {
+    return new Promise((resolve) => {
+      const viewFn = this.views[this.activeView].fn;
+      const imageData = bitmapData.context.createImageData(this.size, this.size);
+      for (let x = 0; x < this.size; x++) {
+        for (let y = 0; y < this.size; y++) {
+          const height = viewFn(data.get(x, y));
+          const index = (x + y * this.size) * 4;
+          imageData.data[index + 0] = height;
+          imageData.data[index + 1] = height;
+          imageData.data[index + 2] = height;
+          imageData.data[index + 3] = height;
+        }
       }
-    }
 
-    this.regionMapData.context.putImageData(this.regionMapData.imageData, 0, 0);
-    this.regionMapData.dirty = true;
+      bitmapData.context.putImageData(imageData, 0, 0);
+      bitmapData.dirty = true;
+      resolve();
+    });
   }
 
   makeGrid(mask, cells) {
@@ -125,7 +110,18 @@ export default class Map extends Phaser.State {
     this.worldMapCursor.top = this.activeRegion.y * (this.regionSize * this.uiScale);
   }
 
-  create() {
+  regen() {
+    Promise.all([
+      this.generateMap('world'),
+      this.generateMap('region', this.activeRegion)
+    ])
+      .then(([worldData, regionData]) => {
+        this.renderMap(worldData, this.worldMapData);
+        this.renderMap(regionData, this.regionMapData);
+      });
+  }
+
+  async create() {
     // go back to the game
     const ui = this.game.add.group();
     ui.smoothed = false;
@@ -148,14 +144,13 @@ export default class Map extends Phaser.State {
     keys.view.onUp.add(() => {
       console.log('change view');
       this.activeView = (this.activeView + 1) % this.views.length;
-      this.makeMap();
-      this.makeRegion();
+      this.regen();
     });
 
     this.worldMapData = this.game.add.bitmapData(this.size, this.size);
-    this.regionMapData = this.game.add.bitmapData(this.regionSize * this.regionScale, this.regionSize * this.regionScale);
-    this.makeMap();
-    this.makeRegion();
+    this.regionMapData = this.game.add.bitmapData(this.size, this.size);
+
+    this.regen();
 
     this.worldMap = this.game.add.sprite(0, 0, this.worldMapData);
     this.worldMap.smoothed = false;
@@ -171,7 +166,10 @@ export default class Map extends Phaser.State {
       this.activeRegion.x = cx;
       this.activeRegion.y = cy;
       this.updateRegionCursor();
-      this.makeRegion();
+      this.generateMap('region', this.activeRegion)
+        .then(regionData => {
+          this.renderMap(regionData, this.regionMapData);
+        });
     });
     worldMapGrid.inputEnabled = true;
     worldMapGrid.pixelPerfectClick = true;
@@ -187,8 +185,7 @@ export default class Map extends Phaser.State {
 
     keys.refresh.onUp.add(() => {
       this.seed = Math.random();
-      this.makeMap();
-      this.makeRegion();
+      this.regen();
     });
 
     const cursorMap = this.game.add.bitmapData(this.size, this.size);

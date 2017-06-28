@@ -28,11 +28,15 @@
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
     "expose-loader": "^0.7.3",
-    "webpack": "^2.5.1"
+    "webpack": "^2.5.1",
+    "worker-loader": "^0.8.0"
   },
   "dependencies": {
     "alea": "^0.0.9",
     "css-loader": "^0.28.4",
+    "ndarray": "^1.0.18",
+    "ndarray-fill": "^1.0.2",
+    "ndarray-ops": "^1.2.2",
     "phaser-ce": "^2.7.9",
     "simplex-noise": "^2.3.0",
     "style-loader": "^0.18.2",
