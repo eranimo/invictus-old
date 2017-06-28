@@ -36,17 +36,31 @@ const levels = {
     numIterations: 5,
     persistence: 0.55,
     initFrequency: 2,
-    zoomScale: 1,
+    transform: (x, y) => [x, y],
   },
   region: {
     numIterations: 25,
     persistence: 0.6,
     initFrequency: 2,
-    zoomScale: 10,
+    transform(x, y, position) {
+      const nx = (x + position.region.x) / 10;
+      const ny = (y + position.region.y) / 10;
+      return [nx, ny];
+    }
+  },
+  local: {
+    numIterations: 25,
+    persistence: 0.6,
+    initFrequency: 2,
+    transform(x, y, position) {
+      const nx = (x + position.local.x) / 100;
+      const ny = (y + position.local.y) / 100;
+      return [nx, ny];
+    }
   },
 };
 
-function makeHeightmap({ seed, size, level, offset = { x: 0, y: 0 } }) {
+function makeHeightmap({ seed, size, level, position }) {
   const heightmap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
 
   const rng = new Alea(seed);
@@ -55,9 +69,8 @@ function makeHeightmap({ seed, size, level, offset = { x: 0, y: 0 } }) {
   const options = levels[level];
 
   fill(heightmap, (x, y) => {
-    const nx = ((x + offset.x) / options.zoomScale) / size - 0.5;
-    const ny = ((y + offset.y) / options.zoomScale) / size - 0.5;
-    return zoomableNoise(noise)(options)(nx, ny);
+    const [nx, ny] = options.transform(x, y, position);
+    return zoomableNoise(noise)(options)(nx / size + 0.5, ny / size + 0.5);
   });
   return heightmap.data;
 }
