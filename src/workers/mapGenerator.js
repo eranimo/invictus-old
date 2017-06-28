@@ -40,7 +40,7 @@ const levels = {
   },
   region: {
     numIterations: 25,
-    persistence: 0.61,
+    persistence: 0.6,
     initFrequency: 2,
     transform(x, y, position) {
       const nx = (x + position.region.x) / 10;
@@ -50,7 +50,7 @@ const levels = {
   },
   local: {
     numIterations: 35,
-    persistence: 0.62,
+    persistence: 0.6,
     initFrequency: 2,
     transform(x, y, position) {
       const nx = (x + position.local.x) / 100;
