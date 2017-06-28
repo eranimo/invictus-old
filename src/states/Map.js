@@ -133,13 +133,13 @@ export default class Map extends Phaser.State {
       this.generateMap('region', this.activeRegionOffset),
       this.generateMap('local', this.activeLocalOffset)
     ])
-      .then(([worldData, regionData, localMap]) => {
+      .then(([worldData, regionData, localData]) => {
         this.worldData = worldData;
         this.regionData = regionData;
-        this.localMap = localMap;
+        this.localData = localData;
         this.renderMap(worldData, this.worldMapData);
         this.renderMap(regionData, this.regionMapData);
-        this.renderMap(localMap, this.localMapData);
+        this.renderMap(localData, this.localMapData);
       });
   }
 
@@ -162,17 +162,9 @@ export default class Map extends Phaser.State {
     keys.view.onUp.add(() => {
       console.log('change view');
       this.activeView = (this.activeView + 1) % this.views.length;
-      Promise.all([
-        this.generateMap('region', this.activeRegionOffset),
-        this.generateMap('local', this.activeLocalOffset),
-      ])
-        .then(([regionData, localData]) => {
-          this.regionData = regionData;
-          this.localData = localData;
-          this.renderMap(this.worldData, this.worldMapData);
-          this.renderMap(this.regionData, this.regionMapData);
-          this.renderMap(this.localData, this.localMapData);
-        });
+      this.renderMap(this.worldData, this.worldMapData);
+      this.renderMap(this.regionData, this.regionMapData);
+      this.renderMap(this.localData, this.localMapData);
     });
     keys.refresh.onUp.add(() => {
       console.log('refresh');
@@ -224,6 +216,8 @@ export default class Map extends Phaser.State {
         this.generateMap('local', this.activeLocalOffset)
       ])
         .then(([regionData, localData]) => {
+          this.regionData = regionData;
+          this.localData = localData;
           this.renderMap(regionData, this.regionMapData);
           this.renderMap(localData, this.localMapData);
         });
@@ -240,6 +234,8 @@ export default class Map extends Phaser.State {
         this.generateMap('local', this.activeLocalOffset)
       ])
         .then(([regionData, localData]) => {
+          this.regionData = regionData;
+          this.localData = localData;
           this.renderMap(regionData, this.regionMapData);
           this.renderMap(localData, this.localMapData);
         });
