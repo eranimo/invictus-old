@@ -2,10 +2,14 @@ import Phaser from 'phaser';
 import { time } from 'core-decorators';
 import MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
+import colormap from 'colormap';
+
 
 
 const contour = (value, c = 10) => Math.ceil(value / c) * c;
 const coastline = value => value < 200 ? 0 : 255;
+
+const temperatureMap = colormap({ nshades: 85, format: 'rgb' });
 
 
 export default class Map extends Phaser.State {
@@ -23,17 +27,29 @@ export default class Map extends Phaser.State {
     this.views = [
       {
         name: 'Heightmap',
-        fn: (height) => contour(height, 10),
+        fn: ({ height }) => {
+          const v = contour(height, 10);
+          return [v, v, v, 1];
+        }
       },
       {
         name: 'Sea Level',
-        fn: (height) => coastline(height),
+        fn: ({ height }) => {
+          const v = coastline(height);
+          return [v, v, v, 1];
+        }
+      },
+      {
+        name: 'Radiation',
+        fn: ({ radiation }) => {
+          return temperatureMap[radiation] || [0, 0, 0, 0];
+        }
       }
     ];
   }
 
   @time
-  async generateMap(level, position) {
+  async generateMap(level, position = { x: 0, y: 0 }) {
     return new Promise((resolve) => {
       const mapGenerator = new MapGenerator();
       mapGenerator.postMessage({
@@ -45,25 +61,34 @@ export default class Map extends Phaser.State {
         },
       });
       mapGenerator.addEventListener('message', event => {
-        const heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
-        resolve(heightmap);
+        const data = Object.create(null);
+        data.level = level;
+        data.id = event.data.id;
+        data.heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
+        data.radiation = ndarray(event.data.radiation, [this.size, this.size]);
+        Object.freeze(data);
+        resolve(data);
       });
     });
   }
 
   @time
-  renderMap(data, bitmapData) {
+  renderMap(map, bitmapData) {
     return new Promise((resolve) => {
       const viewFn = this.views[this.activeView].fn;
+      console.log(map);
       const imageData = bitmapData.context.createImageData(this.size, this.size);
       for (let x = 0; x < this.size; x++) {
         for (let y = 0; y < this.size; y++) {
-          const height = viewFn(data.get(x, y));
+          const [r, g, b, a] = viewFn({
+            height: map.heightmap.get(x, y),
+            radiation: map.radiation.get(x, y),
+          });
           const index = (x + y * this.size) * 4;
-          imageData.data[index + 0] = height;
-          imageData.data[index + 1] = height;
-          imageData.data[index + 2] = height;
-          imageData.data[index + 3] = height;
+          imageData.data[index + 0] = r;
+          imageData.data[index + 1] = g;
+          imageData.data[index + 2] = b;
+          imageData.data[index + 3] = a * 255;
         }
       }
 
@@ -110,20 +135,15 @@ export default class Map extends Phaser.State {
 
   get activeRegionOffset() {
     return {
-      region: {
-        x: this.activeRegion.x * this.size,
-        y: this.activeRegion.y * this.size,
-      }
+      x: this.activeRegion.x * this.size,
+      y: this.activeRegion.y * this.size,
     };
   }
 
   get activeLocalOffset() {
     return {
-      region: this.activeRegionOffset.region,
-      local: {
-        x: (this.activeRegion.x * this.size * 10) + (this.activeLocal.x * this.size),
-        y: (this.activeRegion.y * this.size * 10) + (this.activeLocal.y * this.size),
-      }
+      x: (this.activeRegion.x * this.size * 10) + (this.activeLocal.x * this.size),
+      y: (this.activeRegion.y * this.size * 10) + (this.activeLocal.y * this.size),
     };
   }
 

@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "alea": "^0.0.9",
+    "colormap": "^2.2.0",
     "css-loader": "^0.28.4",
     "ndarray": "^1.0.18",
     "ndarray-fill": "^1.0.2",

@@ -36,15 +36,17 @@ const levels = {
     numIterations: 5,
     persistence: 0.6,
     initFrequency: 2,
+    zoomLevel: 1,
     transform: (x, y) => [x, y],
   },
   region: {
     numIterations: 25,
     persistence: 0.6,
     initFrequency: 2,
+    zoomLevel: 10,
     transform(x, y, position) {
-      const nx = (x + position.region.x) / 10;
-      const ny = (y + position.region.y) / 10;
+      const nx = (x + position.x) / 10;
+      const ny = (y + position.y) / 10;
       return [nx, ny];
     }
   },
@@ -52,33 +54,59 @@ const levels = {
     numIterations: 35,
     persistence: 0.6,
     initFrequency: 2,
+    zoomLevel: 100,
     transform(x, y, position) {
-      const nx = (x + position.local.x) / 100;
-      const ny = (y + position.local.y) / 100;
+      const nx = (x + position.x) / 100;
+      const ny = (y + position.y) / 100;
       return [nx, ny];
     }
   },
 };
 
-function makeHeightmap({ seed, size, level, position }) {
+function makeHeightmap(options) {
+  const { seed, size, level, position } = options.heightmap;
   const heightmap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
 
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
   const noise = (nx, ny) => simplex.noise2D(nx, ny) / 2 + 0.5;
-  const options = levels[level];
+  const levelOptions = levels[level];
 
   fill(heightmap, (x, y) => {
-    const [nx, ny] = options.transform(x, y, position);
-    return zoomableNoise(noise)(options)(nx / size + 0.5, ny / size + 0.5);
+    const nx = (x + position.x) / levelOptions.zoomLevel;
+    const ny = (y + position.y) / levelOptions.zoomLevel;
+    return zoomableNoise(noise)(levelOptions)(nx / size + 0.5, ny / size + 0.5);
   });
-  return heightmap.data;
+  return heightmap;
+}
+
+function makeRadiation(heightmap, options) {
+  const { size, level, position } = options.heightmap;
+  const radiation = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  const levelOptions = levels[level];
+
+  fill(radiation, (x, y) => {
+    const ty = (y + position.y) / levelOptions.zoomLevel;
+    let ratio = ty / (size);
+    if (ratio < 0.5) {
+      ratio /= 0.5;
+    } else {
+      ratio = (1 - ratio) / 0.5;
+    }
+    const height = heightmap.get(x, y);
+    return ((ratio * height) / 255) * 85;
+  });
+  return radiation;
 }
 
 self.addEventListener('message', event => {
-  const { heightmap } = event.data;
   const data = {};
-  console.log(`Made a new ${heightmap.level} heightmap`);
-  data.heightmap = makeHeightmap(heightmap);
+  console.log(`Made a new ${event.data.heightmap.level} heightmap`);
+  const heightmap = makeHeightmap(event.data);
+  const radiation = makeRadiation(heightmap, event.data);
+  console.log(radiation);
+  data.heightmap = heightmap.data;
+  data.radiation = radiation.data;
+  data.id = Math.round(Math.random() * 1000);
   self.postMessage(data);
 });
