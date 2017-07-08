@@ -3,14 +3,18 @@ import { time } from 'core-decorators';
 import MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
 import colormap from 'colormap';
+import { groupBy } from 'lodash';
+import { biomes } from '../constants';
 
 
+const biomesById = groupBy(biomes, 'id');
 
 const contour = (value, c = 10) => Math.ceil(value / c) * c;
-const coastline = value => value < 200 ? 0 : 255;
+const coastline = value => value < 150 ? 0 : 255;
 
-const temperatureMap = colormap({ nshades: 85, format: 'rgb' });
-
+const temperatureMap = colormap({ nshades: 60, format: 'rgb' });
+const rainfallMap = colormap({ nshades: 7000, format: 'rgb', colormap: 'YIGnBu' });
+const WATER = [4, 53, 70, 1];
 
 export default class Map extends Phaser.State {
   init() {
@@ -22,8 +26,8 @@ export default class Map extends Phaser.State {
     this.activeRegion = { x: 0, y: 0 };
     this.activeLocal = { x: 0, y: 0 };
     this.uiScale = 2;
-    this.gridAlpha = 1;
-    this.activeView = 0;
+    this.gridAlpha = 0;
+    this.activeView = 3;
     this.views = [
       {
         name: 'Heightmap',
@@ -42,13 +46,33 @@ export default class Map extends Phaser.State {
       {
         name: 'Radiation',
         fn: ({ radiation }) => {
-          return temperatureMap[radiation] || [0, 0, 0, 0];
+          return temperatureMap[Math.round(radiation + 30)] || [0, 0, 0, 0];
+        }
+      },
+      {
+        name: 'Rainfall',
+        fn: ({ height, rainfall }) => {
+          if (height < 150) {
+            return WATER;
+          }
+          return rainfallMap[Math.round(rainfall)] || [0, 0, 0, 0];
+        }
+      },
+      {
+        name: 'Biome',
+        fn: ({ height, biome }) => {
+          if (height < 150) {
+            return WATER;
+          }
+          if (biome in biomesById) {
+            return biomesById[biome][0].color;
+          }
+          throw new Error(`Cannot find biome with id ${biome}`);
         }
       }
     ];
   }
 
-  @time
   async generateMap(level, position = { x: 0, y: 0 }) {
     return new Promise((resolve) => {
       const mapGenerator = new MapGenerator();
@@ -63,9 +87,11 @@ export default class Map extends Phaser.State {
       mapGenerator.addEventListener('message', event => {
         const data = Object.create(null);
         data.level = level;
-        data.id = event.data.id;
+        data.stats = event.data.stats;
         data.heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
         data.radiation = ndarray(event.data.radiation, [this.size, this.size]);
+        data.rainfall = ndarray(event.data.rainfall, [this.size, this.size]);
+        data.biome = ndarray(event.data.biome, [this.size, this.size]);
         Object.freeze(data);
         resolve(data);
       });
@@ -83,12 +109,14 @@ export default class Map extends Phaser.State {
           const [r, g, b, a] = viewFn({
             height: map.heightmap.get(x, y),
             radiation: map.radiation.get(x, y),
+            rainfall: map.rainfall.get(x, y),
+            biome: map.biome.get(x, y),
           });
           const index = (x + y * this.size) * 4;
           imageData.data[index + 0] = r;
           imageData.data[index + 1] = g;
           imageData.data[index + 2] = b;
-          imageData.data[index + 3] = a * 255;
+          imageData.data[index + 3] = (a || 1) * 255;
         }
       }
 

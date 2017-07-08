@@ -2,66 +2,11 @@ import ndarray from 'ndarray';
 import fill from 'ndarray-fill';
 import SimplexNoise from 'simplex-noise';
 import Alea from 'alea';
+import ops from 'ndarray-ops';
+import { find, clamp } from 'lodash';
+import zoomableNoise from '../utils/zoomableNoise';
+import { levels, biomes } from '../constants';
 
-
-// https://cmaher.github.io/posts/working-with-simplex-noise/
-const zoomableNoise = noise => ({ numIterations, persistence, initFrequency }) => (nx, ny) => {
-  // persistence is the scale factor in each iteration
-  let maxAmp = 0;
-  let amp = 1; // relative importance of the octave in the sum of the octaves
-  let freq = initFrequency;
-  let noiseValue = 0;
-  const low = 0;
-  const high = 255;
-
-  // add successively smaller, higher-frequency terms
-  for (let i = 0; i < numIterations; ++i) {
-    noiseValue += noise(nx * freq, ny * freq) * amp;
-    maxAmp += amp;
-    amp *= persistence;
-    freq *= 2;
-  }
-
-  // take the average value of the iterations
-  noiseValue /= maxAmp;
-
-  // normalize the result
-  noiseValue = noiseValue * (high - low) / 2 + (high + low) / 2;
-
-  return noiseValue;
-};
-
-const levels = {
-  world: {
-    numIterations: 5,
-    persistence: 0.6,
-    initFrequency: 2,
-    zoomLevel: 1,
-    transform: (x, y) => [x, y],
-  },
-  region: {
-    numIterations: 25,
-    persistence: 0.6,
-    initFrequency: 2,
-    zoomLevel: 10,
-    transform(x, y, position) {
-      const nx = (x + position.x) / 10;
-      const ny = (y + position.y) / 10;
-      return [nx, ny];
-    }
-  },
-  local: {
-    numIterations: 35,
-    persistence: 0.6,
-    initFrequency: 2,
-    zoomLevel: 100,
-    transform(x, y, position) {
-      const nx = (x + position.x) / 100;
-      const ny = (y + position.y) / 100;
-      return [nx, ny];
-    }
-  },
-};
 
 function makeHeightmap(options) {
   const { seed, size, level, position } = options.heightmap;
@@ -69,20 +14,20 @@ function makeHeightmap(options) {
 
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
-  const noise = (nx, ny) => simplex.noise2D(nx, ny) / 2 + 0.5;
+  const noise = (nx, ny) => simplex.noise2D(nx, ny);
   const levelOptions = levels[level];
 
   fill(heightmap, (x, y) => {
     const nx = (x + position.x) / levelOptions.zoomLevel;
     const ny = (y + position.y) / levelOptions.zoomLevel;
-    return zoomableNoise(noise)(levelOptions)(nx / size + 0.5, ny / size + 0.5);
+    return zoomableNoise(noise)(levelOptions)(nx / size + 0.5, ny / size + 0.5) * 255;
   });
   return heightmap;
 }
 
 function makeRadiation(heightmap, options) {
   const { size, level, position } = options.heightmap;
-  const radiation = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  const radiation = ndarray(new Float32Array(size * size), [size, size]);
   const levelOptions = levels[level];
 
   fill(radiation, (x, y) => {
@@ -94,9 +39,70 @@ function makeRadiation(heightmap, options) {
       ratio = (1 - ratio) / 0.5;
     }
     const height = heightmap.get(x, y);
-    return ((ratio * height) / 255) * 85;
+    let rad = (ratio * height) / 255;
+    return (clamp(rad * 1.1, 0, 0.99) * 60) - 30;
   });
   return radiation;
+}
+
+function makeRainfall(options) {
+  const { seed, size, level, position } = options.heightmap;
+  const rainfall = ndarray(new Float32Array(size * size), [size, size]);
+
+  const levelOptions = levels[level];
+  const rng = new Alea(seed * 2);
+  const simplex = new SimplexNoise(rng);
+  const noise = (nx, ny) => simplex.noise2D(nx, ny);
+
+  fill(rainfall, (x, y) => {
+    const nx = (x + position.x) / levelOptions.zoomLevel;
+    const ny = (y + position.y) / levelOptions.zoomLevel;
+    let ratio = ny / (size);
+    if (ratio < 0.5) {
+      ratio /= 0.5;
+    } else {
+      ratio = (1 - ratio) / 0.5;
+    }
+    const rain1 = zoomableNoise(noise)({
+      ...levelOptions,
+      high: 400,
+      persistence: 0.1,
+      maxAmp: 10,
+      initFrequency: 8,
+    })(nx / size + 0.5, ny / size + 0.5);
+    const rain2 = zoomableNoise(noise)({
+      ...levelOptions,
+      high: 400,
+      persistence: 0.3,
+      maxAmp: 1,
+      initFrequency: 6,
+    })(nx / size + 0.5, ny / size + 0.5);
+    const rain = rain2 - (rain1 / 1.5); //0.25 * rain2 + 0.75 * rain1;
+    return clamp(rain * 7000, 0, 7000);
+  });
+  console.log('min rain', ops.inf(rainfall) / 7000);
+  return rainfall;
+}
+
+/*
+factors that go in to biomes:
+- rainfall
+- temperature
+*/
+function makeBiomes(radiationMap, rainfallMap, options) {
+  const { size } = options.heightmap;
+  const biomeMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  fill(biomeMap, (x, y) => {
+    const radiation = radiationMap.get(x, y);
+    const rainfall = rainfallMap.get(x, y);
+    const biome = find(biomes, (biome => biome.test(radiation, rainfall)));
+    if (!biome) {
+      throw new Error(`Cannot find biome with radiation: ${radiation} and rainfall ${rainfall}`);
+    }
+    return biome ? biome.id : 0;
+  });
+  console.log(biomes, biomeMap.get(1, 1));
+  return biomeMap;
 }
 
 self.addEventListener('message', event => {
@@ -104,9 +110,26 @@ self.addEventListener('message', event => {
   console.log(`Made a new ${event.data.heightmap.level} heightmap`);
   const heightmap = makeHeightmap(event.data);
   const radiation = makeRadiation(heightmap, event.data);
-  console.log(radiation);
+  const rainfall = makeRainfall(event.data);
+  const biomes = makeBiomes(radiation, rainfall, event.data);
   data.heightmap = heightmap.data;
   data.radiation = radiation.data;
+  data.rainfall = rainfall.data;
+  data.biome = biomes.data;
+  data.stats = {
+    height: {
+      min: ops.inf(heightmap),
+      max: ops.sup(heightmap),
+    },
+    radiation: {
+      min: ops.inf(radiation),
+      max: ops.sup(radiation),
+    },
+    rainfall: {
+      min: ops.inf(rainfall),
+      max: ops.sup(rainfall),
+    },
+  };
   data.id = Math.round(Math.random() * 1000);
   self.postMessage(data);
 });
