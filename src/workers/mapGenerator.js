@@ -32,14 +32,15 @@ function makeRadiation(heightmap, options) {
 
   fill(radiation, (x, y) => {
     const ty = (y + position.y) / levelOptions.zoomLevel;
-    let ratio = ty / (size);
-    if (ratio < 0.5) {
-      ratio /= 0.5;
+    let altitudeRatio = ty / (size);
+    if (altitudeRatio < 0.5) {
+      altitudeRatio /= 0.5;
     } else {
-      ratio = (1 - ratio) / 0.5;
+      altitudeRatio = (1 - altitudeRatio) / 0.5;
     }
     const height = heightmap.get(x, y);
-    let rad = (ratio * height) / 255;
+    const heightRatio = height / 255;
+    let rad = ((0.65 * altitudeRatio) + (0.35 * heightRatio));
     return (clamp(rad * 1.1, 0, 0.99) * 60) - 30;
   });
   return radiation;
@@ -89,15 +90,19 @@ factors that go in to biomes:
 - rainfall
 - temperature
 */
-function makeBiomes(radiationMap, rainfallMap, options) {
-  const { size } = options.heightmap;
+function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
+  const { size, sealevel } = options.heightmap;
   const biomeMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
   fill(biomeMap, (x, y) => {
+    const height = heightmap.get(x, y);
     const radiation = radiationMap.get(x, y);
     const rainfall = rainfallMap.get(x, y);
-    const biome = find(biomes, (biome => biome.test(radiation, rainfall)));
+    const type = height < sealevel ? 'water' : 'land';
+    const biome = find(biomes, (biome => {
+      return biome.type === type && biome.test(radiation, rainfall, height, sealevel);
+    }));
     if (!biome) {
-      throw new Error(`Cannot find biome with radiation: ${radiation} and rainfall ${rainfall}`);
+      throw new Error(`Cannot find biome at (${x}, ${y}) with radiation: ${radiation} and rainfall ${rainfall} at height ${height}`);
     }
     return biome ? biome.id : 0;
   });
@@ -111,7 +116,7 @@ self.addEventListener('message', event => {
   const heightmap = makeHeightmap(event.data);
   const radiation = makeRadiation(heightmap, event.data);
   const rainfall = makeRainfall(event.data);
-  const biomes = makeBiomes(radiation, rainfall, event.data);
+  const biomes = makeBiomes(heightmap, radiation, rainfall, event.data);
   data.heightmap = heightmap.data;
   data.radiation = radiation.data;
   data.rainfall = rainfall.data;

@@ -7,10 +7,11 @@ import { groupBy } from 'lodash';
 import { biomes } from '../constants';
 
 
+const SEALEVEL = 150;
 const biomesById = groupBy(biomes, 'id');
 
 const contour = (value, c = 10) => Math.ceil(value / c) * c;
-const coastline = value => value < 150 ? 0 : 255;
+const coastline = value => value < SEALEVEL ? 0 : 255;
 
 const temperatureMap = colormap({ nshades: 60, format: 'rgb' });
 const rainfallMap = colormap({ nshades: 7000, format: 'rgb', colormap: 'YIGnBu' });
@@ -27,7 +28,7 @@ export default class Map extends Phaser.State {
     this.activeLocal = { x: 0, y: 0 };
     this.uiScale = 2;
     this.gridAlpha = 0;
-    this.activeView = 3;
+    this.activeView = 2;
     this.views = [
       {
         name: 'Heightmap',
@@ -45,14 +46,17 @@ export default class Map extends Phaser.State {
       },
       {
         name: 'Radiation',
-        fn: ({ radiation }) => {
+        fn: ({ height, radiation }) => {
+          if (height < SEALEVEL + 2 && height > SEALEVEL - 2) {
+            return [0, 0, 0];
+          }
           return temperatureMap[Math.round(radiation + 30)] || [0, 0, 0, 0];
         }
       },
       {
         name: 'Rainfall',
         fn: ({ height, rainfall }) => {
-          if (height < 150) {
+          if (height < SEALEVEL) {
             return WATER;
           }
           return rainfallMap[Math.round(rainfall)] || [0, 0, 0, 0];
@@ -60,10 +64,10 @@ export default class Map extends Phaser.State {
       },
       {
         name: 'Biome',
-        fn: ({ height, biome }) => {
-          if (height < 150) {
-            return WATER;
-          }
+        fn: ({ biome }) => {
+          // if (height < SEALEVEL) {
+          //   return WATER;
+          // }
           if (biome in biomesById) {
             return biomesById[biome][0].color;
           }
@@ -81,7 +85,8 @@ export default class Map extends Phaser.State {
           seed: this.seed,
           size: this.size,
           level,
-          position
+          position,
+          sealevel: SEALEVEL
         },
       });
       mapGenerator.addEventListener('message', event => {
