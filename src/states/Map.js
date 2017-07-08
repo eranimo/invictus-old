@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { time } from 'core-decorators';
+//import { time } from 'core-decorators';
 import MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
 import colormap from 'colormap';
@@ -103,7 +103,6 @@ export default class Map extends Phaser.State {
     });
   }
 
-  @time
   renderMap(map, bitmapData) {
     return new Promise((resolve) => {
       const viewFn = this.views[this.activeView].fn;

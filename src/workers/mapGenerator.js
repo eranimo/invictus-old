@@ -81,7 +81,6 @@ function makeRainfall(options) {
     const rain = rain2 - (rain1 / 1.5); //0.25 * rain2 + 0.75 * rain1;
     return clamp(rain * 7000, 0, 7000);
   });
-  console.log('min rain', ops.inf(rainfall) / 7000);
   return rainfall;
 }
 
@@ -106,7 +105,6 @@ function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
     }
     return biome ? biome.id : 0;
   });
-  console.log(biomes, biomeMap.get(1, 1));
   return biomeMap;
 }
 
