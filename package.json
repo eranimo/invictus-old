@@ -11,6 +11,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@types/node": "^8.0.11",
     "babel-core": "^6.24.1",
     "babel-eslint": "^7.2.3",
     "babel-loader": "^7.0.0",
@@ -30,10 +31,15 @@
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^3.0.1",
     "expose-loader": "^0.7.3",
+    "ts-loader": "^2.2.2",
+    "tslint": "^5.5.0",
+    "typescript": "^2.4.1",
     "webpack": "^2.5.1",
     "worker-loader": "^0.8.0"
   },
   "dependencies": {
+    "@types/lodash": "^4.14.68",
+    "@types/ndarray": "^1.0.3",
     "alea": "^0.0.9",
     "colormap": "^2.2.0",
     "css-loader": "^0.28.4",

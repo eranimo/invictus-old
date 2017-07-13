@@ -12,13 +12,15 @@ var definePlugin = new webpack.DefinePlugin({
   __DEV__: JSON.stringify(JSON.parse(process.env.BUILD_DEV || 'true'))
 })
 
+console.log(phaser);
+
 module.exports = {
   entry: {
     app: [
       'babel-polyfill',
-      path.resolve(__dirname, 'src/main.js')
+      path.resolve(__dirname, 'src/main.ts')
     ],
-    vendor: ['pixi', 'p2', 'phaser', 'webfontloader']
+    vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader']
   },
   devtool: 'cheap-source-map',
   output: {
@@ -36,12 +38,13 @@ module.exports = {
       port: process.env.PORT || 4000,
       server: {
         baseDir: ['./', './build']
-      }
+      },
+      open: false,
     })
   ],
   module: {
     rules: [
-      { test: /\.js$/, use: ['babel-loader'], include: path.join(__dirname, 'src') },
+      { test: /\.ts$/, use: ['ts-loader'], include: path.join(__dirname, 'src') },
       { test: /pixi\.js/, use: ['expose-loader?PIXI'] },
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },
@@ -54,8 +57,9 @@ module.exports = {
     tls: 'empty'
   },
   resolve: {
+    extensions: ['.ts', '.tsx', '.js'],
     alias: {
-      'phaser': phaser,
+      'phaser-ce': phaser,
       'pixi': pixi,
       'p2': p2
     }

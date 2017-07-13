@@ -1,7 +1,12 @@
 /* globals __DEV__ */
-import Phaser from 'phaser';
+import * as Phaser from 'phaser-ce';
 
 export default class Game extends Phaser.State {
+  map: Phaser.Tilemap;
+  layer1: Phaser.TilemapLayer;
+  layer2: Phaser.TilemapLayer;
+  cursors: Phaser.CursorKeys;
+
   init () {}
   preload () {}
 

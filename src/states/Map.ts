@@ -1,6 +1,6 @@
-import Phaser from 'phaser';
+import { Game, State, Sprite } from 'phaser-ce';
 //import { time } from 'core-decorators';
-import MapGenerator from 'worker-loader!../workers/mapGenerator';
+import * as MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
 import colormap from 'colormap';
 import { groupBy } from 'lodash';
@@ -17,7 +17,54 @@ const temperatureMap = colormap({ nshades: 60, format: 'rgb' });
 const rainfallMap = colormap({ nshades: 7000, format: 'rgb', colormap: 'YIGnBu' });
 const WATER = [4, 53, 70, 1];
 
-export default class Map extends Phaser.State {
+interface Coordinate {
+  x: number,
+  y: number
+}
+
+interface ViewParams {
+  height: number,
+  rainfall: number,
+  radiation: number,
+  biome: number,
+}
+
+interface View {
+  name: string,
+  fn(params: ViewParams): Array<number>
+}
+
+export default class Map extends State {
+  views: Array<View>;
+  size: number;
+  seed: number;
+  regionScale: number;
+  regionSize: number;
+  activeRegion: Coordinate;
+  activeLocal: Coordinate;
+  uiScale: number;
+  gridAlpha: number;
+  activeView: number;
+  
+  worldData: Object;
+  regionData: Object;
+  localData: Object;
+
+  worldMapData: Object;
+  regionMapData: Object;
+  localMapData: Object;
+
+  worldMap: Sprite;
+  regionMap: Sprite;
+  localMap: Sprite;
+
+  worldMapCursor: Sprite;
+  regionMapCursor: Sprite;
+
+  worldMapGrid: Sprite;
+  regionMapGrid: Sprite;
+  localMapGrid: Sprite;
+
   init() {
     this.stage.backgroundColor = '#2d2d2d';
     this.size = 250;
@@ -130,7 +177,7 @@ export default class Map extends Phaser.State {
     });
   }
 
-  makeGrid(mask, cells, onClickGrid) {
+  makeGrid(mask, cells, onClickGrid?) {
     const width = mask.width;
     const height = mask.height;
     const cellSize = (width) / cells;
@@ -144,7 +191,7 @@ export default class Map extends Phaser.State {
     const gridSprite = this.game.add.sprite(mask.left, mask.top, gridMap);
     gridSprite.smoothed = false;
     gridSprite.inputEnabled = true;
-    gridSprite.pixelPerfectClick = true;
+    // gridSprite.pixelPerfectClick = true;
     gridSprite.events.onInputDown.add(() => {
       const cx = Math.floor(gridSprite.input.pointerX() / (this.regionSize * 2));
       const cy = Math.floor(gridSprite.input.pointerY() / (this.regionSize * 2));
@@ -229,7 +276,7 @@ export default class Map extends Phaser.State {
     this.setupKeyboard();
 
     const ui = this.game.add.group();
-    ui.smoothed = false;
+    // ui.smoothed = false;
     this.game.camera.bounds = null;
 
     this.worldMapData = this.game.add.bitmapData(this.size, this.size);

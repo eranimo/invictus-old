@@ -109,7 +109,7 @@ function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
 }
 
 self.addEventListener('message', event => {
-  const data = {};
+  const data: any = {};
   console.log(`Made a new ${event.data.heightmap.level} heightmap`);
   const heightmap = makeHeightmap(event.data);
   const radiation = makeRadiation(heightmap, event.data);
@@ -134,5 +134,5 @@ self.addEventListener('message', event => {
     },
   };
   data.id = Math.round(Math.random() * 1000);
-  self.postMessage(data);
+  (self as any).postMessage(data);
 });
