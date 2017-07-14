@@ -19,29 +19,29 @@ export default class Map extends State {
   regionScale: number;
   regionSize: number;
   activeRegion: Coordinate;
-  activeLocal: Coordinate;
+  activesector: Coordinate;
   uiScale: number;
   gridAlpha: number;
   activeView: number;
   
   worldData: Object;
   regionData: Object;
-  localData: Object;
+  sectorData: Object;
 
   worldMapData: Object;
   regionMapData: Object;
-  localMapData: Object;
+  sectorMapData: Object;
 
   worldMap: Sprite;
   regionMap: Sprite;
-  localMap: Sprite;
+  sectorMap: Sprite;
 
   worldMapCursor: Sprite;
   regionMapCursor: Sprite;
 
   worldMapGrid: Sprite;
   regionMapGrid: Sprite;
-  localMapGrid: Sprite;
+  sectorMapGrid: Sprite;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
@@ -50,7 +50,7 @@ export default class Map extends State {
     this.regionScale = 10;
     this.regionSize = this.size / this.regionScale;
     this.activeRegion = { x: 0, y: 0 };
-    this.activeLocal = { x: 0, y: 0 };
+    this.activesector = { x: 0, y: 0 };
     this.uiScale = 2;
     this.gridAlpha = 0;
     this.activeView = 3;
@@ -140,9 +140,9 @@ export default class Map extends State {
     this.worldMapCursor.top = this.activeRegion.y * (this.regionSize * this.uiScale);
   }
 
-  updateLocalCursor() {
-    this.regionMapCursor.left = this.worldMap.width + 10 + this.activeLocal.x * (this.regionSize * this.uiScale);
-    this.regionMapCursor.top = this.activeLocal.y * (this.regionSize * this.uiScale);
+  updatesectorCursor() {
+    this.regionMapCursor.left = this.worldMap.width + 10 + this.activesector.x * (this.regionSize * this.uiScale);
+    this.regionMapCursor.top = this.activesector.y * (this.regionSize * this.uiScale);
   }
 
   get activeRegionOffset() {
@@ -152,10 +152,10 @@ export default class Map extends State {
     };
   }
 
-  get activeLocalOffset() {
+  get activesectorOffset() {
     return {
-      x: (this.activeRegion.x * this.size * 10) + (this.activeLocal.x * this.size),
-      y: (this.activeRegion.y * this.size * 10) + (this.activeLocal.y * this.size),
+      x: (this.activeRegion.x * this.size * 10) + (this.activesector.x * this.size),
+      y: (this.activeRegion.y * this.size * 10) + (this.activesector.y * this.size),
     };
   }
 
@@ -163,15 +163,15 @@ export default class Map extends State {
     Promise.all([
       this.generateMap('world'),
       this.generateMap('region', this.activeRegionOffset),
-      this.generateMap('local', this.activeLocalOffset)
+      this.generateMap('sector', this.activesectorOffset)
     ])
-      .then(([worldData, regionData, localData]) => {
+      .then(([worldData, regionData, sectorData]) => {
         this.worldData = worldData;
         this.regionData = regionData;
-        this.localData = localData;
+        this.sectorData = sectorData;
         this.renderMap(worldData, this.worldMapData);
         this.renderMap(regionData, this.regionMapData);
-        this.renderMap(localData, this.localMapData);
+        this.renderMap(sectorData, this.sectorMapData);
       });
   }
 
@@ -196,7 +196,7 @@ export default class Map extends State {
       this.activeView = (this.activeView + 1) % VIEWS.length;
       this.renderMap(this.worldData, this.worldMapData);
       this.renderMap(this.regionData, this.regionMapData);
-      this.renderMap(this.localData, this.localMapData);
+      this.renderMap(this.sectorData, this.sectorMapData);
     });
     keys.refresh.onUp.add(() => {
       console.log('refresh');
@@ -214,7 +214,7 @@ export default class Map extends State {
 
     this.worldMapData = this.game.add.bitmapData(this.size, this.size);
     this.regionMapData = this.game.add.bitmapData(this.size, this.size);
-    this.localMapData = this.game.add.bitmapData(this.size, this.size);
+    this.sectorMapData = this.game.add.bitmapData(this.size, this.size);
 
     this.regen();
 
@@ -228,14 +228,14 @@ export default class Map extends State {
     this.regionMap.smoothed = false;
     this.regionMap.scale.set(this.uiScale);
 
-    // local map sprite
-    this.localMap = this.game.add.sprite((2 * this.worldMap.width) + 20, 0, this.localMapData);
-    this.localMap.smoothed = false;
-    this.localMap.scale.set(this.uiScale);
+    // sector map sprite
+    this.sectorMap = this.game.add.sprite((2 * this.worldMap.width) + 20, 0, this.sectorMapData);
+    this.sectorMap.smoothed = false;
+    this.sectorMap.scale.set(this.uiScale);
 
     ui.add(this.worldMap);
     ui.add(this.regionMap);
-    ui.add(this.localMap);
+    ui.add(this.sectorMap);
 
     // world map grid
     this.worldMapGrid = this.makeGrid(this.worldMap, this.regionScale, (cx, cy) => {
@@ -245,38 +245,38 @@ export default class Map extends State {
       this.updateRegionCursor();
       Promise.all([
         this.generateMap('region', this.activeRegionOffset),
-        this.generateMap('local', this.activeLocalOffset)
+        this.generateMap('sector', this.activesectorOffset)
       ])
-        .then(([regionData, localData]) => {
+        .then(([regionData, sectorData]) => {
           this.regionData = regionData;
-          this.localData = localData;
+          this.sectorData = sectorData;
           this.renderMap(regionData, this.regionMapData);
-          this.renderMap(localData, this.localMapData);
+          this.renderMap(sectorData, this.sectorMapData);
         });
     });
 
     // region map grid
     this.regionMapGrid = this.makeGrid(this.regionMap, this.regionScale, (cx, cy) => {
-      console.log(`Clicked on local ${cx}, ${cy}`);
-      this.activeLocal.x = cx;
-      this.activeLocal.y = cy;
-      this.updateLocalCursor();
+      console.log(`Clicked on sector ${cx}, ${cy}`);
+      this.activesector.x = cx;
+      this.activesector.y = cy;
+      this.updatesectorCursor();
       Promise.all([
         this.generateMap('region', this.activeRegionOffset),
-        this.generateMap('local', this.activeLocalOffset)
+        this.generateMap('sector', this.activesectorOffset)
       ])
-        .then(([regionData, localData]) => {
+        .then(([regionData, sectorData]) => {
           this.regionData = regionData;
-          this.localData = localData;
+          this.sectorData = sectorData;
           this.renderMap(regionData, this.regionMapData);
-          this.renderMap(localData, this.localMapData);
+          this.renderMap(sectorData, this.sectorMapData);
         });
     });
-    this.localMapGrid = this.makeGrid(this.localMap, this.regionScale);
+    this.sectorMapGrid = this.makeGrid(this.sectorMap, this.regionScale);
 
     ui.add(this.worldMapGrid);
     ui.add(this.regionMapGrid);
-    ui.add(this.localMapGrid);
+    ui.add(this.sectorMapGrid);
 
     // world cursor
     const cursorMapWorld = this.game.add.bitmapData(this.size, this.size);
@@ -304,12 +304,12 @@ export default class Map extends State {
     cursorMapRegion.context.stroke();
     this.regionMapCursor = this.game.add.sprite(0, 0, cursorMapRegion);
     ui.add(this.regionMapCursor);
-    this.updateLocalCursor();
+    this.updatesectorCursor();
   }
 
   update() {
     this.worldMapGrid.alpha = this.gridAlpha;
     this.regionMapGrid.alpha = this.gridAlpha;
-    this.localMapGrid.alpha = this.gridAlpha;
+    this.sectorMapGrid.alpha = this.gridAlpha;
   }
 }

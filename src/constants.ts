@@ -20,7 +20,7 @@ export const levels = {
       return [nx, ny];
     }
   },
-  local: {
+  sector: {
     numIterations: 50,
     persistence: 0.6,
     initFrequency: 2,
