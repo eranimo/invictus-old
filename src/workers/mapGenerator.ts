@@ -5,7 +5,8 @@ import Alea from 'alea';
 import ops from 'ndarray-ops';
 import { find, clamp } from 'lodash';
 import zoomableNoise from '../utils/zoomableNoise';
-import { levels, biomes } from '../constants';
+import { levels } from '../constants';
+import { BIOMES } from '../mapgen/biomes';
 
 
 function makeHeightmap(options) {
@@ -41,7 +42,7 @@ function makeRadiation(heightmap, options) {
     const height = heightmap.get(x, y);
     const heightRatio = height / 255;
     let rad = ((0.65 * altitudeRatio) + (0.35 * heightRatio));
-    return (clamp(rad * 1.1, 0, 0.99) * 60) - 30;
+    return (clamp(rad * 1.1, 0, 0.99) * 65) - 30;
   });
   return radiation;
 }
@@ -69,14 +70,14 @@ function makeRainfall(options) {
       high: 400,
       persistence: 0.1,
       maxAmp: 10,
-      initFrequency: 8,
+      initFrequency: 35,
     })(nx / size + 0.5, ny / size + 0.5);
     const rain2 = zoomableNoise(noise)({
       ...levelOptions,
       high: 400,
       persistence: 0.3,
       maxAmp: 1,
-      initFrequency: 6,
+      initFrequency: 4,
     })(nx / size + 0.5, ny / size + 0.5);
     const rain = rain2 - (rain1 / 1.5); //0.25 * rain2 + 0.75 * rain1;
     return clamp(rain * 7000, 0, 7000);
@@ -97,13 +98,13 @@ function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
     const radiation = radiationMap.get(x, y);
     const rainfall = rainfallMap.get(x, y);
     const type = height < sealevel ? 'water' : 'land';
-    const biome = find(biomes, (biome => {
+    const biome = find(BIOMES, (biome => {
       return biome.type === type && biome.test(radiation, rainfall, height, sealevel);
     }));
     if (!biome) {
       throw new Error(`Cannot find biome at (${x}, ${y}) with radiation: ${radiation} and rainfall ${rainfall} at height ${height}`);
     }
-    return biome ? biome.id : 0;
+    return biome ? BIOMES.indexOf(biome) : 0;
   });
   return biomeMap;
 }

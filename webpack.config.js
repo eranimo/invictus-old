@@ -57,6 +57,10 @@ module.exports = {
     tls: 'empty'
   },
   resolve: {
+    modules: [
+      path.resolve('./node_modules'),
+      path.resolve('./src')
+    ],
     extensions: ['.ts', '.tsx', '.js'],
     alias: {
       'phaser-ce': phaser,

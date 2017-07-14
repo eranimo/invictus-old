@@ -2,36 +2,14 @@ import { Game, State, Sprite } from 'phaser-ce';
 //import { time } from 'core-decorators';
 import * as MapGenerator from 'worker-loader!../workers/mapGenerator';
 import ndarray from 'ndarray';
-import colormap from 'colormap';
-import { groupBy } from 'lodash';
-import { biomes } from '../constants';
+import { VIEWS, View } from './map/views';
 
 
 const SEALEVEL = 150;
-const biomesById = groupBy(biomes, 'id');
-
-const contour = (value, c = 10) => Math.ceil(value / c) * c;
-const coastline = value => value < SEALEVEL ? 0 : 255;
-
-const temperatureMap = colormap({ nshades: 60, format: 'rgb' });
-const rainfallMap = colormap({ nshades: 7000, format: 'rgb', colormap: 'YIGnBu' });
-const WATER = [4, 53, 70, 1];
 
 interface Coordinate {
   x: number,
   y: number
-}
-
-interface ViewParams {
-  height: number,
-  rainfall: number,
-  radiation: number,
-  biome: number,
-}
-
-interface View {
-  name: string,
-  fn(params: ViewParams): Array<number>
 }
 
 export default class Map extends State {
@@ -75,53 +53,7 @@ export default class Map extends State {
     this.activeLocal = { x: 0, y: 0 };
     this.uiScale = 2;
     this.gridAlpha = 0;
-    this.activeView = 2;
-    this.views = [
-      {
-        name: 'Heightmap',
-        fn: ({ height }) => {
-          const v = contour(height, 10);
-          return [v, v, v, 1];
-        }
-      },
-      {
-        name: 'Sea Level',
-        fn: ({ height }) => {
-          const v = coastline(height);
-          return [v, v, v, 1];
-        }
-      },
-      {
-        name: 'Radiation',
-        fn: ({ height, radiation }) => {
-          if (height < SEALEVEL + 2 && height > SEALEVEL - 2) {
-            return [0, 0, 0];
-          }
-          return temperatureMap[Math.round(radiation + 30)] || [0, 0, 0, 0];
-        }
-      },
-      {
-        name: 'Rainfall',
-        fn: ({ height, rainfall }) => {
-          if (height < SEALEVEL) {
-            return WATER;
-          }
-          return rainfallMap[Math.round(rainfall)] || [0, 0, 0, 0];
-        }
-      },
-      {
-        name: 'Biome',
-        fn: ({ biome }) => {
-          // if (height < SEALEVEL) {
-          //   return WATER;
-          // }
-          if (biome in biomesById) {
-            return biomesById[biome][0].color;
-          }
-          throw new Error(`Cannot find biome with id ${biome}`);
-        }
-      }
-    ];
+    this.activeView = 3;
   }
 
   async generateMap(level, position = { x: 0, y: 0 }) {
@@ -152,7 +84,7 @@ export default class Map extends State {
 
   renderMap(map, bitmapData) {
     return new Promise((resolve) => {
-      const viewFn = this.views[this.activeView].fn;
+      const viewFn = VIEWS[this.activeView].fn;
       console.log(map);
       const imageData = bitmapData.context.createImageData(this.size, this.size);
       for (let x = 0; x < this.size; x++) {
@@ -162,6 +94,7 @@ export default class Map extends State {
             radiation: map.radiation.get(x, y),
             rainfall: map.rainfall.get(x, y),
             biome: map.biome.get(x, y),
+            sealevel: SEALEVEL,
           });
           const index = (x + y * this.size) * 4;
           imageData.data[index + 0] = r;
@@ -260,7 +193,7 @@ export default class Map extends State {
     });
     keys.view.onUp.add(() => {
       console.log('change view');
-      this.activeView = (this.activeView + 1) % this.views.length;
+      this.activeView = (this.activeView + 1) % VIEWS.length;
       this.renderMap(this.worldData, this.worldMapData);
       this.renderMap(this.regionData, this.regionMapData);
       this.renderMap(this.localData, this.localMapData);
