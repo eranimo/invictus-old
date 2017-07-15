@@ -136,10 +136,10 @@ export default class Map extends State {
     // gridSprite.pixelPerfectClick = true;
     gridSprite.events.onInputDown.add(() => {
       const cx = Math.floor(
-        (gridSprite.input.pointerX() + this.game.camera.x) / (this.regionSize * 2)
+        (gridSprite.input.pointerX() + this.game.camera.x) / (this.regionSize * this.uiScale)
       );
       const cy = Math.floor(
-        (gridSprite.input.pointerY() + this.game.camera.y) / (this.regionSize * 2)
+        (gridSprite.input.pointerY() + this.game.camera.y) / (this.regionSize * this.uiScale)
       );
       if (onClickGrid) {
         onClickGrid(cx, cy);
