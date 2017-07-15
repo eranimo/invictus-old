@@ -10,20 +10,27 @@ import MapState from './states/Map';
 import config from './config';
 import './style.css';
 
+const UI_TOP_PX = 50;
+
 class Game extends Phaser.Game {
   constructor () {
     const docElement = document.documentElement;
     const width = docElement.clientWidth > config.gameWidth ? config.gameWidth : docElement.clientWidth;
     const height = docElement.clientHeight > config.gameHeight ? config.gameHeight : docElement.clientHeight;
 
-    super(width, height, Phaser.WEBGL, 'content', null);
+    super(width, height - UI_TOP_PX, Phaser.WEBGL, 'gameCanvas', null);
 
     this.state.add('Boot', BootState, false);
     this.state.add('Splash', SplashState, false);
     this.state.add('Game', GameState, false);
     this.state.add('Map', MapState, false);
 
-    this.state.start('Boot');    
+    this.state.start('Boot');   
+    
+    
+    const topUI = document.createElement('div');
+    topUI.id = 'topUI';
+    document.body.appendChild(topUI);
   }
 
   reload() {
@@ -35,7 +42,7 @@ class Game extends Phaser.Game {
   }
 
   updateGameSize() {
-    this.scale.setGameSize(window.innerWidth, window.innerHeight);
+    this.scale.setGameSize(window.innerWidth, window.innerHeight - UI_TOP_PX);
   }
 }
 

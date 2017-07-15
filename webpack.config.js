@@ -44,7 +44,7 @@ module.exports = {
   ],
   module: {
     rules: [
-      { test: /\.ts$/, use: ['ts-loader'], include: path.join(__dirname, 'src') },
+      { test: /\.tsx?$/, use: ['ts-loader'], include: path.join(__dirname, 'src') },
       { test: /pixi\.js/, use: ['expose-loader?PIXI'] },
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },
@@ -58,8 +58,8 @@ module.exports = {
   },
   resolve: {
     modules: [
-      path.resolve('./node_modules'),
-      path.resolve('./src')
+      path.resolve(__dirname, 'src'),
+      'node_modules'
     ],
     extensions: ['.ts', '.tsx', '.js'],
     alias: {

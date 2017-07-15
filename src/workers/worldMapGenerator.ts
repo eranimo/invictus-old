@@ -5,7 +5,7 @@ import Alea from 'alea';
 import ops from 'ndarray-ops';
 import { find, clamp } from 'lodash';
 import zoomableNoise from '../utils/zoomableNoise';
-import { levels } from '../constants';
+import { levels } from 'mapgen/levels';
 import { BIOMES } from '../mapgen/biomes';
 
 

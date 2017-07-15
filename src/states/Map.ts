@@ -1,8 +1,9 @@
 import { Game, State, Sprite } from 'phaser-ce';
 //import { time } from 'core-decorators';
-import * as MapGenerator from 'worker-loader!../workers/mapGenerator';
+import * as MapGenerator from 'worker-loader!../workers/worldMapGenerator';
 import ndarray from 'ndarray';
 import { VIEWS, View } from './map/views';
+import renderUI from './map/ui';
 
 
 const SEALEVEL = 150;
@@ -42,6 +43,8 @@ export default class Map extends State {
   worldMapGrid: Sprite;
   regionMapGrid: Sprite;
   sectorMapGrid: Sprite;
+
+  cursors: any;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
@@ -110,7 +113,7 @@ export default class Map extends State {
     });
   }
 
-  makeGrid(mask, cells, onClickGrid?) {
+  makeGrid(mask: Sprite, cells: number, onClickGrid?: (cx: number, cy: number) => void) {
     const width = mask.width;
     const height = mask.height;
     const cellSize = (width) / cells;
@@ -126,8 +129,12 @@ export default class Map extends State {
     gridSprite.inputEnabled = true;
     // gridSprite.pixelPerfectClick = true;
     gridSprite.events.onInputDown.add(() => {
-      const cx = Math.floor(gridSprite.input.pointerX() / (this.regionSize * 2));
-      const cy = Math.floor(gridSprite.input.pointerY() / (this.regionSize * 2));
+      const cx = Math.floor(
+        (gridSprite.input.pointerX() + this.game.camera.x) / (this.regionSize * 2)
+      );
+      const cy = Math.floor(
+        (gridSprite.input.pointerY() + this.game.camera.y) / (this.regionSize * 2)
+      );
       if (onClickGrid) {
         onClickGrid(cx, cy);
       }
@@ -305,11 +312,33 @@ export default class Map extends State {
     this.regionMapCursor = this.game.add.sprite(0, 0, cursorMapRegion);
     ui.add(this.regionMapCursor);
     this.updatesectorCursor();
+
+    this.cursors = this.game.input.keyboard.addKeys({
+      'up': Phaser.KeyCode.W,
+      'down': Phaser.KeyCode.S,
+      'left': Phaser.KeyCode.A,
+      'right': Phaser.KeyCode.D
+    });
+
+    renderUI();
   }
 
   update() {
     this.worldMapGrid.alpha = this.gridAlpha;
     this.regionMapGrid.alpha = this.gridAlpha;
     this.sectorMapGrid.alpha = this.gridAlpha;
+
+    // camera move
+    if (this.cursors.left.isDown) {
+      this.game.camera.x -= 8;
+    } else if (this.cursors.right.isDown) {
+      this.game.camera.x += 8;
+    }
+
+    if (this.cursors.up.isDown) {
+      this.game.camera.y -= 8;
+    } else if (this.cursors.down.isDown) {
+      this.game.camera.y += 8;
+    }
   }
 }

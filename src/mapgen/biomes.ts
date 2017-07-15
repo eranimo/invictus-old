@@ -16,7 +16,7 @@ export const BIOMES: Array<Biome> = [
     color: [224, 224, 224],
     type: 'land',
     test: (rad, rain) => (inRange(rad, -31, -15) && inRange(rain, 0, 7000)) ||
-                             (inRange(rad, -15, -10) && inRange(rain, 1000, 7000))
+                         (inRange(rad, -15, -10) && inRange(rain, 1000, 7000))
   },
   {
     title: 'Tundra',
