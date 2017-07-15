@@ -8,7 +8,8 @@ import GameState from './states/Game';
 import MapState from './states/Map';
 
 import config from './config';
-import './style.css';
+import './style.scss';
+
 
 const UI_TOP_PX = 50;
 

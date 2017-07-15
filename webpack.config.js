@@ -17,7 +17,6 @@ console.log(phaser);
 module.exports = {
   entry: {
     app: [
-      'babel-polyfill',
       path.resolve(__dirname, 'src/main.ts')
     ],
     vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader']
@@ -48,6 +47,7 @@ module.exports = {
       { test: /pixi\.js/, use: ['expose-loader?PIXI'] },
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },
+      { test: /\.scss$/, use: [ 'style-loader', 'css-loader', 'sass-loader' ] },
       { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] }
     ]
   },
