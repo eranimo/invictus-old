@@ -11,7 +11,7 @@ import config from './config';
 import './style.scss';
 
 
-const UI_TOP_PX = 30;
+const UI_TOP_PX = 50;
 
 class Game extends Phaser.Game {
   constructor () {
