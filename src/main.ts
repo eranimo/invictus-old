@@ -11,7 +11,7 @@ import config from './config';
 import './style.scss';
 
 
-const UI_TOP_PX = 50;
+const UI_TOP_PX = 30;
 
 class Game extends Phaser.Game {
   constructor () {
@@ -31,6 +31,7 @@ class Game extends Phaser.Game {
     
     const topUI = document.createElement('div');
     topUI.id = 'topUI';
+    topUI.classList.add('pt-dark');
     document.body.appendChild(topUI);
   }
 
@@ -44,6 +45,7 @@ class Game extends Phaser.Game {
 
   updateGameSize() {
     this.scale.setGameSize(window.innerWidth, window.innerHeight - UI_TOP_PX);
+    this.reload();
   }
 }
 

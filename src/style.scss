@@ -1,4 +1,13 @@
-/* @import "~@blueprintjs/core"; */
+@import "~@blueprintjs/core/dist/blueprint.css";
+
+body, html {
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 body {
   background-color: #3f3f3f;
@@ -6,6 +15,11 @@ body {
 
 canvas {
   image-rendering: pixelated;
-  margin-top: 50px;
-  border-top: 2px solid rgb(1, 123, 191);
+}
+
+
+
+.top-ui {
+  height: 50px;
+  line-height: 50px;
 }

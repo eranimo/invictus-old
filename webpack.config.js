@@ -19,7 +19,7 @@ module.exports = {
     app: [
       path.resolve(__dirname, 'src/main.ts')
     ],
-    vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader']
+    vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader', '@blueprintjs/core']
   },
   devtool: 'cheap-source-map',
   output: {
@@ -48,7 +48,27 @@ module.exports = {
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },
       { test: /\.scss$/, use: [ 'style-loader', 'css-loader', 'sass-loader' ] },
-      { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] }
+      { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] },
+      {
+        test: /\.(woff|woff2)$/,
+        use: {
+          loader: 'url-loader',
+          options: {
+            name: 'fonts/[hash].[ext]',
+            limit: 5000,
+            mimetype: 'application/font-woff'
+          }
+        }
+      }, 
+      {
+        test: /\.(ttf|eot|svg)$/,
+        use: {
+          loader: 'file-loader',
+          options: {
+            name: 'fonts/[hash].[ext]'
+          }
+        }
+      },
     ]
   },
   node: {

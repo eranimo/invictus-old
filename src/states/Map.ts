@@ -3,7 +3,7 @@ import { Game, State, Sprite } from 'phaser-ce';
 import * as MapGenerator from 'worker-loader!../workers/worldMapGenerator';
 import ndarray from 'ndarray';
 import { VIEWS, View } from './map/views';
-import renderUI from './map/ui';
+import renderUI, { store, setView, toggleGrid, UIState } from './map/ui';
 
 
 const SEALEVEL = 150;
@@ -22,8 +22,6 @@ export default class Map extends State {
   activeRegion: Coordinate;
   activesector: Coordinate;
   uiScale: number;
-  gridAlpha: number;
-  activeView: number;
   
   worldData: Object;
   regionData: Object;
@@ -46,6 +44,8 @@ export default class Map extends State {
 
   cursors: any;
 
+  uiState: UIState;
+
   init() {
     this.stage.backgroundColor = '#2d2d2d';
     this.size = 250;
@@ -55,8 +55,14 @@ export default class Map extends State {
     this.activeRegion = { x: 0, y: 0 };
     this.activesector = { x: 0, y: 0 };
     this.uiScale = 2;
-    this.gridAlpha = 0;
-    this.activeView = 3;
+
+    this.uiState = store.getState();
+    store.subscribe(() => {
+      this.uiState = store.getState();
+      this.renderMap(this.worldData, this.worldMapData);
+      this.renderMap(this.regionData, this.regionMapData);
+      this.renderMap(this.sectorData, this.sectorMapData);
+    });
   }
 
   async generateMap(level, position = { x: 0, y: 0 }) {
@@ -87,7 +93,7 @@ export default class Map extends State {
 
   renderMap(map, bitmapData) {
     return new Promise((resolve) => {
-      const viewFn = VIEWS[this.activeView].fn;
+      const viewFn = VIEWS[this.uiState.view].fn;
       console.log(map);
       const imageData = bitmapData.context.createImageData(this.size, this.size);
       for (let x = 0; x < this.size; x++) {
@@ -196,14 +202,11 @@ export default class Map extends State {
     });
     keys.grid.onUp.add(() => {
       console.log('hide grid');
-      this.gridAlpha = this.gridAlpha ? 0 : 1;
+      store.dispatch(toggleGrid());
     });
     keys.view.onUp.add(() => {
       console.log('change view');
-      this.activeView = (this.activeView + 1) % VIEWS.length;
-      this.renderMap(this.worldData, this.worldMapData);
-      this.renderMap(this.regionData, this.regionMapData);
-      this.renderMap(this.sectorData, this.sectorMapData);
+      store.dispatch(setView((this.uiState.view + 1) % VIEWS.length));
     });
     keys.refresh.onUp.add(() => {
       console.log('refresh');
@@ -324,9 +327,10 @@ export default class Map extends State {
   }
 
   update() {
-    this.worldMapGrid.alpha = this.gridAlpha;
-    this.regionMapGrid.alpha = this.gridAlpha;
-    this.sectorMapGrid.alpha = this.gridAlpha;
+    const gridAlpha = this.uiState.showGrid ? 1 : 0;
+    this.worldMapGrid.alpha = gridAlpha;
+    this.regionMapGrid.alpha = gridAlpha;
+    this.sectorMapGrid.alpha = gridAlpha;
 
     // camera move
     if (this.cursors.left.isDown) {
