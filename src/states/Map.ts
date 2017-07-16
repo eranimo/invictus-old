@@ -448,6 +448,7 @@ export default class Map extends State {
   update() {
     // this.game.debug.spriteInfo(this.mapSprite, 50, 50);
     const gridAlpha = this.mapState.showGrid ? 1 : 0;
+    this.mapGrid.alpha = gridAlpha;
 
     // hover pointer
     let { x, y, width, height } = this.mapGrid.getBounds();
