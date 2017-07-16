@@ -101,29 +101,6 @@ export default class Map extends State {
     this.regionSize = this.mapState.size / this.regionScale;
   }
 
-  // get currentSegment(): MapSegmentData | null {
-  //   if (!this.mapState.currentRegion) {
-  //     // world
-  //     return this.gameMap.store.world;
-  //   } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
-  //     // region
-  //     if (!this.gameMap.store.region) {
-  //       this.gameMap.store.region = {};
-  //     }
-  //     return this.gameMap.store.region[
-  //       this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
-  //     ];
-  //   } else if (this.mapState.currentSector) {
-  //     // sector
-  //     if (!this.gameMap.store.sector) {
-  //       this.gameMap.store.sector = {};
-  //     }
-  //     return this.gameMap.store.sector[
-  //       this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
-  //     ];
-  //   }
-  // }
-
   async generateMap(level: string): Promise<MapSegmentData> {
     return new Promise<MapSegmentData>((resolve: any) => {
       let position = { x: 0, y: 0 };
@@ -204,31 +181,7 @@ export default class Map extends State {
     } else {
       this.mapCursorSprite.visible = false;
     }
-
-    // if (this.mapState.currentRegion) {
-    //   this.mapCursorSprite.left = this.mapState.currentRegion.x * this.cellWidth;
-    //   this.mapCursorSprite.top = this.mapState.currentRegion.y * this.cellHeight;
-    //   this.mapCursorSprite.alpha = 1;
-    // } if (this.mapState.currentSector) {
-    //   this.mapCursorSprite.left = this.mapState.currentSector.x * this.cellWidth;
-    //   this.mapCursorSprite.top = this.mapState.currentSector.y * this.cellHeight;
-    //   this.mapCursorSprite.alpha = 1;
-    // }
   }
-
-  get activeRegionOffset() {
-    return {
-      x: this.mapState.currentRegion.x * this.mapState.size,
-      y: this.mapState.currentRegion.y * this.mapState.size,
-    };
-  }
-
-  // get activeSectorOffset() {
-  //   return {
-  //     x: (this.mapState.currentRegion.x * this.mapState.size * 10) + (this.activeSector.x * this.mapState.size),
-  //     y: (this.mapState.currentRegion.y * this.mapState.size * 10) + (this.activeSector.y * this.mapState.size),
-  //   };
-  // }
 
   newMap() {
     this.gameMap.store = {
@@ -312,16 +265,6 @@ export default class Map extends State {
           }));
       }
     }
-    // Promise.all([
-    //   this.generateMap('world'),
-    //   // this.generateMap('region', this.activeRegionOffset),
-    //   // this.generateMap('sector', this.activeSectorOffset)
-    // ])
-    //   .then(([worldData, regionData, sectorData]) => {
-    //     // this.regionData = regionData;
-    //     // this.sectorData = sectorData;
-    //     this.renderMap(this.mapData, this.mapBitmapData);
-    //   });
   }
 
   setupKeyboard() {
@@ -364,22 +307,6 @@ export default class Map extends State {
     } else {
       store.dispatch(moveCursor(coordinate));
     }
-    // if (!this.mapState.currentRegion) {
-    //   store.dispatch(selectRegion(coordinate));
-    // } else if (!this.mapState.currentSector) {
-    //   store.dispatch(selectSector(coordinate));
-    // }
-
-    // this.updateCursor();
-    // Promise.all([
-    //   this.generateMap('region', this.activeRegionOffset),
-    //   this.generateMap('sector', this.activeSectorOffset)
-    // ])
-    //   .then(([regionData, sectorData]) => {
-    //     this.regionData = regionData;
-    //     this.sectorData = sectorData;
-    //     this.renderMap(regionData, this.regionMapData);
-    //   });
   }
 
   async create() {
