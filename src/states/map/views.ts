@@ -40,9 +40,6 @@ export const VIEWS: Array<View> = [
   {
     name: 'Radiation',
     fn: ({ height, radiation, sealevel }) => {
-      if (height < sealevel + 2 && height > sealevel - 2) {
-        return [0, 0, 0];
-      }
       return temperatureMap[Math.round(radiation + 30)] || [0, 0, 0, 0];
     }
   },

@@ -25,7 +25,6 @@ class Game extends Phaser.Game {
     this.state.add('Splash', SplashState, false);
     this.state.add('Game', GameState, false);
     this.state.add('Map', MapState, false);
-
     this.state.start('Boot');   
     
     

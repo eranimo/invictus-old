@@ -1,68 +1,95 @@
-import { Game, State, Sprite } from 'phaser-ce';
+import { Game, State, Sprite, Point} from 'phaser-ce';
 //import { time } from 'core-decorators';
 import * as MapGenerator from 'worker-loader!../workers/worldMapGenerator';
 import ndarray from 'ndarray';
 import { VIEWS, View } from './map/views';
-import renderUI, { store, setView, toggleGrid, UIState } from './map/ui';
+import renderUI, {
+  store,
+  setView,
+  setMapSeed,
+  toggleGrid,
+  UIState,
+  selectRegion,
+  selectSector,
+} from './map/ui';
 
+
+export interface MapSegmentData {
+  heightmap: ndarray,
+  radiation: ndarray,
+  rainfall: ndarray,
+  biome: ndarray,
+};
+
+export interface GameMap {
+  settings: {
+    size: number,
+    seed: number,
+  },
+  store: {
+    world: MapSegmentData | null,
+    region: MapSegmentData | null,
+    sector: MapSegmentData | null,
+  }
+}
+
+const blankGameMap: GameMap = {
+  settings: {
+    size: 250,
+    seed: Math.random(),
+  },
+  store: {
+    world: null,
+    region: null,
+    sector: null,
+  },
+};
 
 const SEALEVEL = 150;
 
-interface Coordinate {
-  x: number,
-  y: number
-}
-
 export default class Map extends State {
   views: Array<View>;
-  size: number;
-  seed: number;
   regionScale: number;
   regionSize: number;
-  activeRegion: Coordinate;
-  activesector: Coordinate;
-  uiScale: number;
   
-  worldData: Object;
-  regionData: Object;
-  sectorData: Object;
+  mapData: Object; // actual map data
+  mapBitmapData: Phaser.BitmapData; // map image bitmap
 
-  worldMapData: Object;
-  regionMapData: Object;
-  sectorMapData: Object;
+  mapSprite: Sprite;
+  mapCursorSprite: Sprite;
+  mapGrid: Sprite;
 
-  worldMap: Sprite;
-  regionMap: Sprite;
-  sectorMap: Sprite;
-
-  worldMapCursor: Sprite;
-  regionMapCursor: Sprite;
-
-  worldMapGrid: Sprite;
-  regionMapGrid: Sprite;
-  sectorMapGrid: Sprite;
+  cellWidth: number;
+  cellHeight: number;
 
   cursors: any;
 
-  uiState: UIState;
+  gameMap: GameMap;
+  mapState: UIState;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
-    this.size = 250;
-    this.seed = Math.random();
     this.regionScale = 10;
-    this.regionSize = this.size / this.regionScale;
-    this.activeRegion = { x: 0, y: 0 };
-    this.activesector = { x: 0, y: 0 };
-    this.uiScale = 2;
 
-    this.uiState = store.getState();
+    this.world.scale.set(1000 / 900);
+
+    this.gameMap = blankGameMap;
+    this.mapState = store.getState();
     store.subscribe(() => {
-      this.uiState = store.getState();
-      this.renderMap(this.worldData, this.worldMapData);
-      this.renderMap(this.regionData, this.regionMapData);
-      this.renderMap(this.sectorData, this.sectorMapData);
+      this.mapState = store.getState();
+      this.renderMap(this.mapData, this.mapBitmapData);
+      this.updateCursor();
     });
+
+    renderUI({
+      save: () => console.log('save map'),
+      regen: () => {
+        console.log('regen map');
+        this.regen();
+      }
+    });
+
+    this.regionSize = this.mapState.size / this.regionScale;
   }
 
   async generateMap(level, position = { x: 0, y: 0 }) {
@@ -70,8 +97,8 @@ export default class Map extends State {
       const mapGenerator = new MapGenerator();
       mapGenerator.postMessage({
         heightmap: {
-          seed: this.seed,
-          size: this.size,
+          seed: this.mapState.seed,
+          size: this.mapState.size,
           level,
           position,
           sealevel: SEALEVEL
@@ -81,10 +108,10 @@ export default class Map extends State {
         const data = Object.create(null);
         data.level = level;
         data.stats = event.data.stats;
-        data.heightmap = ndarray(event.data.heightmap, [this.size, this.size]);
-        data.radiation = ndarray(event.data.radiation, [this.size, this.size]);
-        data.rainfall = ndarray(event.data.rainfall, [this.size, this.size]);
-        data.biome = ndarray(event.data.biome, [this.size, this.size]);
+        data.heightmap = ndarray(event.data.heightmap, [this.mapState.size, this.mapState.size]);
+        data.radiation = ndarray(event.data.radiation, [this.mapState.size, this.mapState.size]);
+        data.rainfall = ndarray(event.data.rainfall, [this.mapState.size, this.mapState.size]);
+        data.biome = ndarray(event.data.biome, [this.mapState.size, this.mapState.size]);
         Object.freeze(data);
         resolve(data);
       });
@@ -93,11 +120,11 @@ export default class Map extends State {
 
   renderMap(map, bitmapData) {
     return new Promise((resolve) => {
-      const viewFn = VIEWS[this.uiState.view].fn;
+      const viewFn = VIEWS[this.mapState.view].fn;
       console.log(map);
-      const imageData = bitmapData.context.createImageData(this.size, this.size);
-      for (let x = 0; x < this.size; x++) {
-        for (let y = 0; y < this.size; y++) {
+      const imageData = this.mapBitmapData.context.createImageData(this.mapState.size, this.mapState.size);
+      for (let x = 0; x < this.mapState.size; x++) {
+        for (let y = 0; y < this.mapState.size; y++) {
           const [r, g, b, a] = viewFn({
             height: map.heightmap.get(x, y),
             radiation: map.radiation.get(x, y),
@@ -105,7 +132,7 @@ export default class Map extends State {
             biome: map.biome.get(x, y),
             sealevel: SEALEVEL,
           });
-          const index = (x + y * this.size) * 4;
+          const index = (x + y * this.mapState.size) * 4;
           imageData.data[index + 0] = r;
           imageData.data[index + 1] = g;
           imageData.data[index + 2] = b;
@@ -119,72 +146,43 @@ export default class Map extends State {
     });
   }
 
-  makeGrid(mask: Sprite, cells: number, onClickGrid?: (cx: number, cy: number) => void) {
-    const width = mask.width;
-    const height = mask.height;
-    const cellSize = (width) / cells;
-    const gridMap = this.game.add.bitmapData(width, height);
-    for (let x = 0; x <= cells; x++) {
-      gridMap.line(x * cellSize, 0, x * cellSize, height, '#000');
-      for (let y = 0; y <= cells; y++) {
-        gridMap.line(0, y * cellSize, width, y * cellSize, '#000');
-      }
+  updateCursor() {
+    if (this.mapState.currentRegion) {
+      this.mapCursorSprite.left = this.mapState.currentRegion.x * this.cellWidth;
+      this.mapCursorSprite.top = this.mapState.currentRegion.y * this.cellHeight;
+      this.mapCursorSprite.alpha = 1;
+    } if (this.mapState.currentSector) {
+      this.mapCursorSprite.left = this.mapState.currentSector.x * this.cellWidth;
+      this.mapCursorSprite.top = this.mapState.currentSector.y * this.cellHeight;
+      this.mapCursorSprite.alpha = 1;
     }
-    const gridSprite = this.game.add.sprite(mask.left, mask.top, gridMap);
-    gridSprite.smoothed = false;
-    gridSprite.inputEnabled = true;
-    // gridSprite.pixelPerfectClick = true;
-    gridSprite.events.onInputDown.add(() => {
-      const cx = Math.floor(
-        (gridSprite.input.pointerX() + this.game.camera.x) / (this.regionSize * this.uiScale)
-      );
-      const cy = Math.floor(
-        (gridSprite.input.pointerY() + this.game.camera.y) / (this.regionSize * this.uiScale)
-      );
-      if (onClickGrid) {
-        onClickGrid(cx, cy);
-      }
-    });
-    return gridSprite;
-  }
-
-  updateRegionCursor() {
-    this.worldMapCursor.left = this.activeRegion.x * (this.regionSize * this.uiScale);
-    this.worldMapCursor.top = this.activeRegion.y * (this.regionSize * this.uiScale);
-  }
-
-  updatesectorCursor() {
-    this.regionMapCursor.left = this.worldMap.width + 10 + this.activesector.x * (this.regionSize * this.uiScale);
-    this.regionMapCursor.top = this.activesector.y * (this.regionSize * this.uiScale);
   }
 
   get activeRegionOffset() {
     return {
-      x: this.activeRegion.x * this.size,
-      y: this.activeRegion.y * this.size,
+      x: this.mapState.currentRegion.x * this.mapState.size,
+      y: this.mapState.currentRegion.y * this.mapState.size,
     };
   }
 
-  get activesectorOffset() {
-    return {
-      x: (this.activeRegion.x * this.size * 10) + (this.activesector.x * this.size),
-      y: (this.activeRegion.y * this.size * 10) + (this.activesector.y * this.size),
-    };
-  }
+  // get activeSectorOffset() {
+  //   return {
+  //     x: (this.mapState.currentRegion.x * this.mapState.size * 10) + (this.activeSector.x * this.mapState.size),
+  //     y: (this.mapState.currentRegion.y * this.mapState.size * 10) + (this.activeSector.y * this.mapState.size),
+  //   };
+  // }
 
   regen() {
     Promise.all([
       this.generateMap('world'),
-      this.generateMap('region', this.activeRegionOffset),
-      this.generateMap('sector', this.activesectorOffset)
+      // this.generateMap('region', this.activeRegionOffset),
+      // this.generateMap('sector', this.activeSectorOffset)
     ])
       .then(([worldData, regionData, sectorData]) => {
-        this.worldData = worldData;
-        this.regionData = regionData;
-        this.sectorData = sectorData;
-        this.renderMap(worldData, this.worldMapData);
-        this.renderMap(regionData, this.regionMapData);
-        this.renderMap(sectorData, this.sectorMapData);
+        this.mapData = worldData;
+        // this.regionData = regionData;
+        // this.sectorData = sectorData;
+        this.renderMap(this.mapData, this.mapBitmapData);
       });
   }
 
@@ -206,131 +204,121 @@ export default class Map extends State {
     });
     keys.view.onUp.add(() => {
       console.log('change view');
-      store.dispatch(setView((this.uiState.view + 1) % VIEWS.length));
+      store.dispatch(setView((this.mapState.view + 1) % VIEWS.length));
     });
     keys.refresh.onUp.add(() => {
       console.log('refresh');
-      this.seed = Math.random();
+      store.dispatch(setMapSeed(Math.random()));
       this.regen();
     });
+  }
+
+  onClickGrid(cx: number, cy: number) {
+    console.log(`Clicked on region ${cx}, ${cy}`);
+    const coordinate = new Phaser.Point(cx, cy);
+
+    if (!this.mapState.currentRegion) {
+      store.dispatch(selectRegion(coordinate));
+    } else if (!this.mapState.currentSector) {
+      store.dispatch(selectSector(coordinate));
+    }
+    // this.updateCursor();
+    // Promise.all([
+    //   this.generateMap('region', this.activeRegionOffset),
+    //   this.generateMap('sector', this.activeSectorOffset)
+    // ])
+    //   .then(([regionData, sectorData]) => {
+    //     this.regionData = regionData;
+    //     this.sectorData = sectorData;
+    //     this.renderMap(regionData, this.regionMapData);
+    //   });
   }
 
   async create() {
     this.setupKeyboard();
 
     const ui = this.game.add.group();
-    // ui.smoothed = false;
     this.game.camera.bounds = null;
 
-    this.worldMapData = this.game.add.bitmapData(this.size, this.size);
-    this.regionMapData = this.game.add.bitmapData(this.size, this.size);
-    this.sectorMapData = this.game.add.bitmapData(this.size, this.size);
+    this.mapBitmapData = this.game.add.bitmapData(this.mapState.size, this.mapState.size);
 
     this.regen();
 
     // world map sprite
-    this.worldMap = this.game.add.sprite(0, 0, this.worldMapData);
-    this.worldMap.smoothed = false;
-    this.worldMap.scale.set(this.uiScale);
+    this.mapSprite = this.game.add.sprite(0, 0, this.mapBitmapData);
+    this.mapSprite.width = 1000;
+    this.mapSprite.height = 1000;
+    this.mapSprite.smoothed = false;
 
-    // region map sprite
-    this.regionMap = this.game.add.sprite(this.worldMap.width + 10, 0, this.regionMapData);
-    this.regionMap.smoothed = false;
-    this.regionMap.scale.set(this.uiScale);
-
-    // sector map sprite
-    this.sectorMap = this.game.add.sprite((2 * this.worldMap.width) + 20, 0, this.sectorMapData);
-    this.sectorMap.smoothed = false;
-    this.sectorMap.scale.set(this.uiScale);
-
-    ui.add(this.worldMap);
-    ui.add(this.regionMap);
-    ui.add(this.sectorMap);
+    ui.add(this.mapSprite);
 
     // world map grid
-    this.worldMapGrid = this.makeGrid(this.worldMap, this.regionScale, (cx, cy) => {
-      console.log(`Clicked on region ${cx}, ${cy}`);
-      this.activeRegion.x = cx;
-      this.activeRegion.y = cy;
-      this.updateRegionCursor();
-      Promise.all([
-        this.generateMap('region', this.activeRegionOffset),
-        this.generateMap('sector', this.activesectorOffset)
-      ])
-        .then(([regionData, sectorData]) => {
-          this.regionData = regionData;
-          this.sectorData = sectorData;
-          this.renderMap(regionData, this.regionMapData);
-          this.renderMap(sectorData, this.sectorMapData);
-        });
+    this.cellWidth = Math.round((this.mapSprite.width) / this.regionSize);
+    this.cellHeight = Math.round((this.mapSprite.height) / this.regionSize);
+    const gridMap = this.game.add.bitmapData(this.mapSprite.width, this.mapSprite.height);
+    for (let x = 0; x <= this.mapSprite.width; x++) {
+      gridMap.line(Math.round(x * this.cellWidth), 0, Math.round(x * this.cellWidth), this.mapSprite.height, '#000');
+      for (let y = 0; y <= this.mapSprite.height; y++) {
+        gridMap.line(0, Math.round(y * this.cellHeight), this.mapSprite.width, Math.round(y * this.cellHeight), '#000');
+      }
+    }
+    this.mapGrid = this.game.add.sprite(0, 0, gridMap);
+    this.mapGrid.smoothed = false;
+    this.mapGrid.inputEnabled = true;
+    this.mapGrid.name = 'MapGrid';
+    // this.mapGrid.pixelPerfectClick = true;
+    this.mapGrid.events.onInputDown.add((sprite, pointer) => {
+      let { x, y, width, height } = sprite.getBounds();
+      let row = Math.floor((pointer.x - x) * this.regionSize / width);
+      let column = Math.floor((pointer.y - y) * this.regionSize / height);
+      this.onClickGrid(row, column);
     });
 
-    // region map grid
-    this.regionMapGrid = this.makeGrid(this.regionMap, this.regionScale, (cx, cy) => {
-      console.log(`Clicked on sector ${cx}, ${cy}`);
-      this.activesector.x = cx;
-      this.activesector.y = cy;
-      this.updatesectorCursor();
-      Promise.all([
-        this.generateMap('region', this.activeRegionOffset),
-        this.generateMap('sector', this.activesectorOffset)
-      ])
-        .then(([regionData, sectorData]) => {
-          this.regionData = regionData;
-          this.sectorData = sectorData;
-          this.renderMap(regionData, this.regionMapData);
-          this.renderMap(sectorData, this.sectorMapData);
-        });
-    });
-    this.sectorMapGrid = this.makeGrid(this.sectorMap, this.regionScale);
+    ui.add(this.mapGrid);
 
-    ui.add(this.worldMapGrid);
-    ui.add(this.regionMapGrid);
-    ui.add(this.sectorMapGrid);
-
-    // world cursor
-    const cursorMapWorld = this.game.add.bitmapData(this.size, this.size);
-    cursorMapWorld.context.strokeStyle = '#FF0000';
-    cursorMapWorld.context.rect(
-      2,
-      2,
-      (this.regionSize * this.uiScale) - 2,
-      (this.regionSize * this.uiScale) - 3,
+    // world map cursor
+    const mapCursorData = this.game.add.bitmapData(this.cellWidth, this.cellHeight);
+    Phaser.Canvas.setSmoothingEnabled(mapCursorData.context, false);
+    mapCursorData.context.strokeStyle = '#FF0000';
+    mapCursorData.context.rect(
+      0,
+      0,
+      this.cellWidth,
+      this.cellHeight,
     );
-    cursorMapWorld.context.stroke();
-    this.worldMapCursor = this.game.add.sprite(0, 0, cursorMapWorld);
-    ui.add(this.worldMapCursor);
-    this.updateRegionCursor();
+    mapCursorData.context.lineWidth = 3;
+    mapCursorData.context.stroke();
+    this.mapCursorSprite = this.game.add.sprite(0, 0, mapCursorData);
+    this.mapCursorSprite.width = this.cellWidth;
+    this.mapCursorSprite.height = this.cellHeight;
+    //this.mapCursorSprite.alpha = 0;
+    
+    this.updateCursor();
 
-    // region cursor
-    const cursorMapRegion = this.game.add.bitmapData(this.size, this.size);
-    cursorMapRegion.context.strokeStyle = '#FF0000';
-    cursorMapRegion.context.rect(
-      2,
-      2,
-      (this.regionSize * this.uiScale) - 2,
-      (this.regionSize * this.uiScale) - 3,
-    );
-    cursorMapRegion.context.stroke();
-    this.regionMapCursor = this.game.add.sprite(0, 0, cursorMapRegion);
-    ui.add(this.regionMapCursor);
-    this.updatesectorCursor();
+    // move the map to the center of the screen
+    const mapGroup = this.game.add.group();
+    mapGroup.add(this.mapSprite);
+    mapGroup.add(this.mapGrid);
+    mapGroup.add(this.mapCursorSprite);
+    mapGroup.centerX = window.innerWidth / 2;
+    mapGroup.centerY = window.innerHeight / 2;
 
+    // set up movement cursors
     this.cursors = this.game.input.keyboard.addKeys({
       'up': Phaser.KeyCode.W,
       'down': Phaser.KeyCode.S,
       'left': Phaser.KeyCode.A,
       'right': Phaser.KeyCode.D
     });
-
-    renderUI();
   }
 
   update() {
-    const gridAlpha = this.uiState.showGrid ? 1 : 0;
-    this.worldMapGrid.alpha = gridAlpha;
-    this.regionMapGrid.alpha = gridAlpha;
-    this.sectorMapGrid.alpha = gridAlpha;
+    const gridAlpha = this.mapState.showGrid ? 1 : 0;
+    this.mapGrid.alpha = gridAlpha;
+
+    if (this.mapState.currentRegion || this.mapState.currentSector) {
+      this.mapCursorSprite.alpha = 1;
+    }
 
     // camera move
     if (this.cursors.left.isDown) {
