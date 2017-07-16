@@ -46,6 +46,7 @@
     "react-dom": "^15.6.1",
     "react-redux": "^5.0.5",
     "redux": "^3.7.2",
+    "redux-logger": "^3.0.6",
     "simplex-noise": "^2.3.0",
     "style-loader": "^0.18.2",
     "webfontloader": "^1.6.27"

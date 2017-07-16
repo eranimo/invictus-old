@@ -11,8 +11,9 @@ import {
   InputGroup,
   Tooltip
 } from '@blueprintjs/core';
-import { createStore } from 'redux';
+import { createStore, applyMiddleware } from 'redux';
 import { Provider, connect } from 'react-redux';
+import { createLogger } from 'redux-logger';
 import { VIEWS } from './views';
 
 
@@ -34,13 +35,17 @@ export const selectRegion = (coordinate: Phaser.Point) => ({ type: SELECT_REGION
 export const SELECT_SECTOR = 'SELECT_SECTOR';
 export const selectSector = (coordinate: Phaser.Point) => ({ type: SELECT_SECTOR, payload: coordinate });
 
+export const MOVE_CURSOR = 'MOVE_CURSOR';
+export const moveCursor = (coordinate: Phaser.Point) => ({ type: MOVE_CURSOR, payload: coordinate });
+
 interface TopUIProps {
   view?: number
 
   // view options
   showGrid?: boolean,
-  currentRegion: Phaser.Point,
-  currentSector: Phaser.Point,
+  currentRegion?: Phaser.Point,
+  currentSector?: Phaser.Point,
+  cursor?: Phaser.Point,
 
   // map options
   seed?: number,
@@ -48,16 +53,13 @@ interface TopUIProps {
 
   setView?: (view: number) => any,
   toggleGrid?: () => any,
-  regen: () => void,
-  save: () => void
-  setMapSeed: (seed: number) => void,
-  setMapSize: (size: number) => void,
+  regen?: () => void,
+  save?: () => void
+  setMapSeed?: (seed: number) => void,
+  setMapSize?: (size: number) => void,
 }
 
-@connect(state => ({
-  ...state,
-  showGrid: state.showGrid,
-}), { setView, toggleGrid, setMapSeed, setMapSize })
+@connect(state => state, { setView, toggleGrid, setMapSeed, setMapSize })
 class TopUI extends React.Component<TopUIProps, any> {
 
   renderViewMenu() {
@@ -190,6 +192,76 @@ class TopUI extends React.Component<TopUIProps, any> {
   }
 }
 
+interface CursorUIProps {
+  cursor?: Phaser.Point | null;
+  regen?: () => void,
+  currentRegion?: Phaser.Point,
+  currentSector?: Phaser.Point,
+  selectRegion?: (coordinate: Phaser.Point) => void,
+  selectSector?: (coordinate: Phaser.Point) => void,
+  moveCursor?: (cursor: Phaser.Point) => void,
+}
+
+@connect(
+  state => state,
+  { selectRegion, selectSector, moveCursor }
+)
+class CursorUI extends React.Component<CursorUIProps, {}> {
+  render() {
+    const { cursor, regen, currentRegion, currentSector, moveCursor, selectRegion, selectSector } = this.props;
+    if (!cursor) {
+      return null;
+    }
+
+    return (
+      <div className="cursor-ui">
+        <div className="header">Cursor <b>({cursor.x}, {cursor.y})</b></div>
+        <div className="content">
+          <Button
+            onClick={() => {
+              if (!currentRegion) {
+                // at world, select region
+                console.log('select region');
+                selectRegion(cursor);
+              } else if (!currentSector) {
+                // at region, select sector
+                console.log('Select sector');
+                selectSector(cursor);
+              } else if (currentSector) {
+                // at sector sector
+                // TODO: implement selecting local
+                console.log('Select local');
+              }
+              moveCursor(null);
+              regen();
+            }}
+            iconName="zoom-in"
+            text="Zoom In"
+          />
+          <Button
+            onClick={() => {
+              if (currentSector) {
+                // zoom out to region map
+                selectSector(null);
+                moveCursor(null);
+                regen();
+              } else if (currentRegion) {
+                // zoom out to world map
+                selectRegion(null);
+                selectSector(null);
+                moveCursor(null);
+                regen();
+              }
+            }}
+            iconName="zoom-out"
+            text="Zoom In"
+          />
+        </div>
+      </div>
+    )
+  }
+}
+
 export interface UIState {
   view: number,
   showGrid: boolean,
@@ -197,15 +269,17 @@ export interface UIState {
   seed: number,
   currentRegion: Phaser.Point | null,
   currentSector: Phaser.Point | null,
+  cursor: Phaser.Point | null,
 };
 
 const initialState: UIState = {
-  view: 0,
+  view: 4,
   showGrid: false,
   size: 250,
   seed: Math.random(),
   currentRegion: null,
   currentSector: null,
+  cursor: null,
 };
 
 const reducer = (state = initialState, action) => {
@@ -240,22 +314,28 @@ const reducer = (state = initialState, action) => {
         ...state,
         currentSector: action.payload,
       };
+    case MOVE_CURSOR:
+      return {
+        ...state,
+        cursor: action.payload,
+      };
     default:
       return state;
   }
 }
-
-export const store = createStore(reducer);
-
-store.subscribe(() => {
-  console.log(store.getState());
+const logger = createLogger({
+  collapsed: true,
 });
+export const store = createStore(reducer, applyMiddleware(logger));
 
 class App extends React.Component {
   render() {
     return (
       <Provider store={store}>
-        <TopUI {...this.props} />
+        <div>
+          <TopUI {...this.props} />
+          <CursorUI {...this.props} />
+        </div>
       </Provider>
     )
   }

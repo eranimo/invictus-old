@@ -11,6 +11,7 @@ import renderUI, {
   UIState,
   selectRegion,
   selectSector,
+  moveCursor,
 } from './map/ui';
 
 
@@ -19,6 +20,12 @@ export interface MapSegmentData {
   radiation: ndarray,
   rainfall: ndarray,
   biome: ndarray,
+  level: any,
+  stats: any,
+};
+
+export interface GameMapStore {
+  [coord: string]: MapSegmentData | null
 };
 
 export interface GameMap {
@@ -28,8 +35,8 @@ export interface GameMap {
   },
   store: {
     world: MapSegmentData | null,
-    region: MapSegmentData | null,
-    sector: MapSegmentData | null,
+    region: GameMapStore | null,
+    sector: GameMapStore | null,
   }
 }
 
@@ -52,7 +59,6 @@ export default class Map extends State {
   regionScale: number;
   regionSize: number;
   
-  mapData: Object; // actual map data
   mapBitmapData: Phaser.BitmapData; // map image bitmap
 
   mapSprite: Sprite;
@@ -66,6 +72,7 @@ export default class Map extends State {
 
   gameMap: GameMap;
   mapState: UIState;
+  currentSegment: MapSegmentData;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
@@ -77,7 +84,7 @@ export default class Map extends State {
     this.mapState = store.getState();
     store.subscribe(() => {
       this.mapState = store.getState();
-      this.renderMap(this.mapData, this.mapBitmapData);
+      this.renderMap();
       this.updateCursor();
     });
 
@@ -92,8 +99,43 @@ export default class Map extends State {
     this.regionSize = this.mapState.size / this.regionScale;
   }
 
-  async generateMap(level, position = { x: 0, y: 0 }) {
-    return new Promise((resolve) => {
+  // get currentSegment(): MapSegmentData | null {
+  //   if (!this.mapState.currentRegion) {
+  //     // world
+  //     return this.gameMap.store.world;
+  //   } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
+  //     // region
+  //     if (!this.gameMap.store.region) {
+  //       this.gameMap.store.region = {};
+  //     }
+  //     return this.gameMap.store.region[
+  //       this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
+  //     ];
+  //   } else if (this.mapState.currentSector) {
+  //     // sector
+  //     if (!this.gameMap.store.sector) {
+  //       this.gameMap.store.sector = {};
+  //     }
+  //     return this.gameMap.store.sector[
+  //       this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
+  //     ];
+  //   }
+  // }
+
+  async generateMap(level: string): Promise<MapSegmentData> {
+    return new Promise<MapSegmentData>((resolve: any) => {
+      let position = { x: 0, y: 0 };
+      if (this.mapState.currentRegion && !this.mapState.currentSector) {
+        position = {
+          x: this.mapState.currentRegion.x * this.mapState.size,
+          y: this.mapState.currentRegion.y * this.mapState.size,
+        };
+      } else if (this.mapState.currentRegion && this.mapState.currentSector) {
+        position = {
+          x: (this.mapState.currentRegion.x * this.mapState.size * 10) + (this.mapState.currentSector.x * this.mapState.size),
+          y: (this.mapState.currentRegion.y * this.mapState.size * 10) + (this.mapState.currentSector.y * this.mapState.size),
+        };
+      }
       const mapGenerator = new MapGenerator();
       mapGenerator.postMessage({
         heightmap: {
@@ -104,8 +146,9 @@ export default class Map extends State {
           sealevel: SEALEVEL
         },
       });
+      console.log('Map gen', level, position);
       mapGenerator.addEventListener('message', event => {
-        const data = Object.create(null);
+        const data: MapSegmentData = Object.create(null);
         data.level = level;
         data.stats = event.data.stats;
         data.heightmap = ndarray(event.data.heightmap, [this.mapState.size, this.mapState.size]);
@@ -118,18 +161,22 @@ export default class Map extends State {
     });
   }
 
-  renderMap(map, bitmapData) {
+  renderMap() {
+    console.log('rendering', this.currentSegment);
+    if (!this.currentSegment) {
+      console.warn('Cannot render, map is loading...');
+      return;
+    }
     return new Promise((resolve) => {
       const viewFn = VIEWS[this.mapState.view].fn;
-      console.log(map);
       const imageData = this.mapBitmapData.context.createImageData(this.mapState.size, this.mapState.size);
       for (let x = 0; x < this.mapState.size; x++) {
         for (let y = 0; y < this.mapState.size; y++) {
           const [r, g, b, a] = viewFn({
-            height: map.heightmap.get(x, y),
-            radiation: map.radiation.get(x, y),
-            rainfall: map.rainfall.get(x, y),
-            biome: map.biome.get(x, y),
+            height: this.currentSegment.heightmap.get(x, y),
+            radiation: this.currentSegment.radiation.get(x, y),
+            rainfall: this.currentSegment.rainfall.get(x, y),
+            biome: this.currentSegment.biome.get(x, y),
             sealevel: SEALEVEL,
           });
           const index = (x + y * this.mapState.size) * 4;
@@ -139,23 +186,32 @@ export default class Map extends State {
           imageData.data[index + 3] = (a || 1) * 255;
         }
       }
-
-      bitmapData.context.putImageData(imageData, 0, 0);
-      bitmapData.dirty = true;
+      this.mapBitmapData.context.fillRect(0, 0, this.mapState.size, this.mapState.size);
+      this.mapBitmapData.context.putImageData(imageData, 0, 0);
+      this.mapBitmapData.dirty = true;
       resolve();
     });
   }
 
   updateCursor() {
-    if (this.mapState.currentRegion) {
-      this.mapCursorSprite.left = this.mapState.currentRegion.x * this.cellWidth;
-      this.mapCursorSprite.top = this.mapState.currentRegion.y * this.cellHeight;
-      this.mapCursorSprite.alpha = 1;
-    } if (this.mapState.currentSector) {
-      this.mapCursorSprite.left = this.mapState.currentSector.x * this.cellWidth;
-      this.mapCursorSprite.top = this.mapState.currentSector.y * this.cellHeight;
-      this.mapCursorSprite.alpha = 1;
+    console.log('update cursor');
+    if (this.mapState.cursor) {
+      this.mapCursorSprite.visible = true;
+      this.mapCursorSprite.left = this.mapState.cursor.x * this.cellWidth;
+      this.mapCursorSprite.top = this.mapState.cursor.y * this.cellHeight;
+    } else {
+      this.mapCursorSprite.visible = false;
     }
+
+    // if (this.mapState.currentRegion) {
+    //   this.mapCursorSprite.left = this.mapState.currentRegion.x * this.cellWidth;
+    //   this.mapCursorSprite.top = this.mapState.currentRegion.y * this.cellHeight;
+    //   this.mapCursorSprite.alpha = 1;
+    // } if (this.mapState.currentSector) {
+    //   this.mapCursorSprite.left = this.mapState.currentSector.x * this.cellWidth;
+    //   this.mapCursorSprite.top = this.mapState.currentSector.y * this.cellHeight;
+    //   this.mapCursorSprite.alpha = 1;
+    // }
   }
 
   get activeRegionOffset() {
@@ -172,18 +228,80 @@ export default class Map extends State {
   //   };
   // }
 
+  newMap() {
+    this.gameMap = blankGameMap;
+    this.regen();
+  }
+
+  /**
+   * Regenerates the current level and all above it
+   */
   regen() {
-    Promise.all([
-      this.generateMap('world'),
-      // this.generateMap('region', this.activeRegionOffset),
-      // this.generateMap('sector', this.activeSectorOffset)
-    ])
-      .then(([worldData, regionData, sectorData]) => {
-        this.mapData = worldData;
-        // this.regionData = regionData;
-        // this.sectorData = sectorData;
-        this.renderMap(this.mapData, this.mapBitmapData);
-      });
+    if (!this.mapState.currentRegion) {
+      // regen world
+
+      if (this.gameMap.store.world) {
+        this.currentSegment = this.gameMap.store.world;
+        this.renderMap();
+      } else {
+        this.gameMap.store.world = null;
+        this.generateMap('world')
+          .then(((data: MapSegmentData) => {
+            console.log('generate world map', data);
+            this.gameMap.store.world = data;
+            this.currentSegment = data;
+            this.renderMap();
+          }));
+      }
+    } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
+      // regen world and region
+      if (this.gameMap.store.region) {
+        this.currentSegment = this.gameMap.store.region[
+          this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
+        ];
+        this.renderMap();
+      } else {
+        this.gameMap.store.region = {};
+        this.generateMap('region')
+          .then(((data: MapSegmentData) => {
+            console.log('generate region map')
+            this.gameMap.store.region[
+              this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
+            ] = data;
+            this.currentSegment = data;
+            this.renderMap();
+          }));
+      }
+    } else if (this.mapState.currentSector) {
+      // regen world, sector, and sector
+      if (this.gameMap.store.sector) {
+        this.currentSegment = this.gameMap.store.region[
+          this.mapState.currentSector.x + '.' + this.mapState.currentSector.y
+        ];
+        this.renderMap();
+      } else {
+        this.gameMap.store.sector = {};
+        this.generateMap('sector')
+          .then(((data: MapSegmentData) => {
+            console.log('generate sector map')
+            this.gameMap.store.sector[
+              this.mapState.currentSector.x + '.' + this.mapState.currentSector.y
+            ] = data;
+            this.currentSegment = data;
+            this.renderMap();
+          }));
+      }
+    }
+    // Promise.all([
+    //   this.generateMap('world'),
+    //   // this.generateMap('region', this.activeRegionOffset),
+    //   // this.generateMap('sector', this.activeSectorOffset)
+    // ])
+    //   .then(([worldData, regionData, sectorData]) => {
+    //     // this.regionData = regionData;
+    //     // this.sectorData = sectorData;
+    //     this.renderMap(this.mapData, this.mapBitmapData);
+    //   });
   }
 
   setupKeyboard() {
@@ -193,6 +311,7 @@ export default class Map extends State {
       refresh: Phaser.Keyboard.R,
       grid: Phaser.Keyboard.G,
       view: Phaser.Keyboard.V,
+      esc: Phaser.Keyboard.ESC,
     });
     keys.map.onUp.add(() => {
       console.log('Go to Game');
@@ -211,17 +330,26 @@ export default class Map extends State {
       store.dispatch(setMapSeed(Math.random()));
       this.regen();
     });
+    keys.esc.onUp.add(() => {
+      store.dispatch(moveCursor(null));
+    });
   }
 
   onClickGrid(cx: number, cy: number) {
     console.log(`Clicked on region ${cx}, ${cy}`);
     const coordinate = new Phaser.Point(cx, cy);
 
-    if (!this.mapState.currentRegion) {
-      store.dispatch(selectRegion(coordinate));
-    } else if (!this.mapState.currentSector) {
-      store.dispatch(selectSector(coordinate));
+    if (this.mapState.cursor && this.mapState.cursor.equals(coordinate)) {
+      store.dispatch(moveCursor(null));
+    } else {
+      store.dispatch(moveCursor(coordinate));
     }
+    // if (!this.mapState.currentRegion) {
+    //   store.dispatch(selectRegion(coordinate));
+    // } else if (!this.mapState.currentSector) {
+    //   store.dispatch(selectSector(coordinate));
+    // }
+
     // this.updateCursor();
     // Promise.all([
     //   this.generateMap('region', this.activeRegionOffset),
@@ -253,8 +381,8 @@ export default class Map extends State {
     ui.add(this.mapSprite);
 
     // world map grid
-    this.cellWidth = Math.round((this.mapSprite.width) / this.regionSize);
-    this.cellHeight = Math.round((this.mapSprite.height) / this.regionSize);
+    this.cellWidth = Math.round((this.mapSprite.width) / this.regionScale);
+    this.cellHeight = Math.round((this.mapSprite.height) / this.regionScale);
     const gridMap = this.game.add.bitmapData(this.mapSprite.width, this.mapSprite.height);
     for (let x = 0; x <= this.mapSprite.width; x++) {
       gridMap.line(Math.round(x * this.cellWidth), 0, Math.round(x * this.cellWidth), this.mapSprite.height, '#000');
@@ -269,8 +397,8 @@ export default class Map extends State {
     // this.mapGrid.pixelPerfectClick = true;
     this.mapGrid.events.onInputDown.add((sprite, pointer) => {
       let { x, y, width, height } = sprite.getBounds();
-      let row = Math.floor((pointer.x - x) * this.regionSize / width);
-      let column = Math.floor((pointer.y - y) * this.regionSize / height);
+      let row = Math.floor((pointer.x - x) * this.regionScale / width);
+      let column = Math.floor((pointer.y - y) * this.regionScale / height);
       this.onClickGrid(row, column);
     });
 
@@ -291,7 +419,7 @@ export default class Map extends State {
     this.mapCursorSprite = this.game.add.sprite(0, 0, mapCursorData);
     this.mapCursorSprite.width = this.cellWidth;
     this.mapCursorSprite.height = this.cellHeight;
-    //this.mapCursorSprite.alpha = 0;
+    this.mapCursorSprite.visible = false;
     
     this.updateCursor();
 
@@ -316,8 +444,8 @@ export default class Map extends State {
     const gridAlpha = this.mapState.showGrid ? 1 : 0;
     this.mapGrid.alpha = gridAlpha;
 
-    if (this.mapState.currentRegion || this.mapState.currentSector) {
-      this.mapCursorSprite.alpha = 1;
+    if (this.mapState.cursor) {
+      this.mapCursorSprite.visible = true;
     }
 
     // camera move
