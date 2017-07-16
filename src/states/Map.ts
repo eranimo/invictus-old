@@ -15,6 +15,7 @@ import renderUI, {
   moveCursor,
   setLoading,
 } from './map/ui';
+import { BIOMES } from 'mapgen/biomes';
 
 
 export interface MapSegmentData {
@@ -77,6 +78,8 @@ export default class Map extends State {
   currentSegment: MapSegmentData;
 
   redrawGrid: boolean;
+  hoverPoint: Point;
+  hoverText: Phaser.Text;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
@@ -105,10 +108,24 @@ export default class Map extends State {
         } else {
           this.fetchMap();
         }
-      }
+      },
     });
 
     this.regionSize = this.mapState.size / this.regionScale;
+  }
+
+  get hoverPointInfo() {
+    const { x, y } = this.hoverPoint;
+    const cx: number = Math.round((x / 1000) * this.mapState.size);
+    const cy: number = Math.round((y / 1000) * this.mapState.size);
+
+    return {
+      cx, cy,
+      height: this.currentSegment.heightmap.get(cx, cy),
+      radiation: this.currentSegment.radiation.get(cx, cy),
+      rainfall: this.currentSegment.rainfall.get(cx, cy),
+      biome: this.currentSegment.biome.get(cx, cy),
+    };
   }
 
   async generateMap(level: string): Promise<MapSegmentData> {
@@ -418,12 +435,39 @@ export default class Map extends State {
       'left': Phaser.KeyCode.A,
       'right': Phaser.KeyCode.D
     });
+
+    this.hoverText = this.game.add.text(10, 10, '', {
+      font: '12px Arial',
+      fill: '#CED9E0',
+      align: 'left',
+    });
+    this.hoverText.fixedToCamera = true;
+    this.hoverText.cameraOffset.setTo(10, 10);
   }
 
   update() {
     // this.game.debug.spriteInfo(this.mapSprite, 50, 50);
     const gridAlpha = this.mapState.showGrid ? 1 : 0;
-    this.mapGrid.alpha = gridAlpha;
+
+    // hover pointer
+    let { x, y, width, height } = this.mapGrid.getBounds();
+    this.hoverPoint = new Point(
+      this.game.input.mousePointer.x - x,
+      this.game.input.mousePointer.y - y
+    );
+
+    if (this.hoverPoint && this.currentSegment) {
+      if (this.hoverPointInfo.height) {
+        this.hoverText.setText(`
+          Location: (${this.hoverPointInfo.cx}, ${this.hoverPointInfo.cy})
+Height: ${this.hoverPointInfo.height}
+Biome: ${BIOMES[this.hoverPointInfo.biome].title}
+Radiation: ${this.hoverPointInfo.radiation}
+Rainfall: ${this.hoverPointInfo.rainfall}
+        `.trim());
+      }
+    }
+    
 
     if (this.mapState.cursor) {
       this.mapCursorSprite.visible = true;
