@@ -94,7 +94,7 @@ class TopUI extends React.Component<TopUIProps, any> {
               <select
                 id="map-size"
                 dir="auto"
-                onChange={e => this.props.setMapSize(parseInt(e.target.value))}
+                onChange={e => this.props.setMapSize(parseInt(e.target.value, 10))}
                 value={this.props.size}
               >
                 <option value={100}>Small (100)</option>
@@ -119,7 +119,7 @@ class TopUI extends React.Component<TopUIProps, any> {
                 placeholder="number"
                 dir="auto"
                 value={this.props.seed.toString()}
-                onChange={e => this.props.setMapSeed(e.target.value)}
+                onChange={e => this.props.setMapSeed(parseInt(e.target.value, 10))}
                 rightElement={
                   <Button
                     className="pt-minimal"

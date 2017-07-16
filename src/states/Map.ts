@@ -84,6 +84,8 @@ export default class Map extends State {
     this.mapState = store.getState();
     store.subscribe(() => {
       this.mapState = store.getState();
+      this.gameMap.settings.size = this.mapState.size;
+      this.gameMap.settings.seed = this.mapState.seed;
       this.renderMap();
       this.updateCursor();
     });
@@ -92,7 +94,7 @@ export default class Map extends State {
       save: () => console.log('save map'),
       regen: () => {
         console.log('regen map');
-        this.regen();
+        this.newMap();
       }
     });
 
@@ -229,7 +231,11 @@ export default class Map extends State {
   // }
 
   newMap() {
-    this.gameMap = blankGameMap;
+    this.gameMap.store = {
+      world: null,
+      region: null,
+      sector: null,
+    };
     this.regen();
   }
 
@@ -241,6 +247,7 @@ export default class Map extends State {
       // regen world
 
       if (this.gameMap.store.world) {
+        console.log('getting world map from cache');
         this.currentSegment = this.gameMap.store.world;
         this.renderMap();
         console.log('MAP:', this.gameMap);
@@ -259,6 +266,7 @@ export default class Map extends State {
       // regen world and region
       const index = this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y;
       if (this.gameMap.store.region && this.gameMap.store.region[index]) {
+        console.log('getting region map from cache');
         this.currentSegment = this.gameMap.store.region[index];
         this.renderMap();
         console.log('MAP:', this.gameMap);
@@ -279,8 +287,12 @@ export default class Map extends State {
       }
     } else if (this.mapState.currentSector) {
       // regen world, sector, and sector
-      const index = this.mapState.currentSector.x + '.' + this.mapState.currentSector.y;
+      const index = this.mapState.currentRegion.x + '.' +
+                    this.mapState.currentRegion.y + '-' +
+                    this.mapState.currentSector.x + '.' +
+                    this.mapState.currentSector.y;
       if (this.gameMap.store.sector && this.gameMap.store.sector[index]) {
+        console.log('getting sector map from cache');
         this.currentSegment = this.gameMap.store.sector[index];
         this.renderMap();
         console.log('MAP:', this.gameMap);
