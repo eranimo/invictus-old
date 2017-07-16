@@ -354,11 +354,6 @@ export default class Map extends State {
     }
   }
 
-  updateGrid() {
-    const size = this.gameMap.settings.size;
-
-  }
-
   async create() {
     this.setupKeyboard();
 
