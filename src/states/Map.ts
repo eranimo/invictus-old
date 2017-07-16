@@ -243,6 +243,7 @@ export default class Map extends State {
       if (this.gameMap.store.world) {
         this.currentSegment = this.gameMap.store.world;
         this.renderMap();
+        console.log('MAP:', this.gameMap);
       } else {
         this.gameMap.store.world = null;
         this.generateMap('world')
@@ -251,17 +252,20 @@ export default class Map extends State {
             this.gameMap.store.world = data;
             this.currentSegment = data;
             this.renderMap();
+            console.log('MAP:', this.gameMap);
           }));
       }
     } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
       // regen world and region
-      if (this.gameMap.store.region) {
-        this.currentSegment = this.gameMap.store.region[
-          this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
-        ];
+      const index = this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y;
+      if (this.gameMap.store.region && this.gameMap.store.region[index]) {
+        this.currentSegment = this.gameMap.store.region[index];
         this.renderMap();
+        console.log('MAP:', this.gameMap);
       } else {
-        this.gameMap.store.region = {};
+        if (!this.gameMap.store.region) {
+          this.gameMap.store.region = {};
+        }
         this.generateMap('region')
           .then(((data: MapSegmentData) => {
             console.log('generate region map')
@@ -270,17 +274,20 @@ export default class Map extends State {
             ] = data;
             this.currentSegment = data;
             this.renderMap();
+            console.log('MAP:', this.gameMap);
           }));
       }
     } else if (this.mapState.currentSector) {
       // regen world, sector, and sector
-      if (this.gameMap.store.sector) {
-        this.currentSegment = this.gameMap.store.sector[
-          this.mapState.currentSector.x + '.' + this.mapState.currentSector.y
-        ];
+      const index = this.mapState.currentSector.x + '.' + this.mapState.currentSector.y;
+      if (this.gameMap.store.sector && this.gameMap.store.sector[index]) {
+        this.currentSegment = this.gameMap.store.sector[index];
         this.renderMap();
+        console.log('MAP:', this.gameMap);
       } else {
-        this.gameMap.store.sector = {};
+        if (!this.gameMap.store.sector) {
+          this.gameMap.store.sector = {};
+        }
         this.generateMap('sector')
           .then(((data: MapSegmentData) => {
             console.log('generate sector map')
@@ -289,6 +296,7 @@ export default class Map extends State {
             ] = data;
             this.currentSegment = data;
             this.renderMap();
+            console.log('MAP:', this.gameMap);
           }));
       }
     }
