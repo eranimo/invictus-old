@@ -23,7 +23,7 @@
     "tslint": "^5.5.0",
     "typescript": "^2.4.1",
     "url-loader": "^0.5.9",
-    "webpack": "^3.2.0",
+    "webpack": "^3.3.0",
     "worker-loader": "^0.8.0"
   },
   "dependencies": {
@@ -37,6 +37,7 @@
     "alea": "^0.0.9",
     "colormap": "^2.2.0",
     "css-loader": "^0.28.4",
+    "lodash": "^4.17.4",
     "ndarray": "^1.0.18",
     "ndarray-fill": "^1.0.2",
     "ndarray-ops": "^1.2.2",

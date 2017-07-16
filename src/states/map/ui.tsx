@@ -254,7 +254,7 @@ class CursorUI extends React.Component<CursorUIProps, {}> {
               }
             }}
             iconName="zoom-out"
-            text="Zoom In"
+            text="Zoom Out"
           />
         </div>
       </div>
