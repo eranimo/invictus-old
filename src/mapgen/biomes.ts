@@ -47,7 +47,7 @@ export const BIOMES: Array<Biome> = [
     test: (rad, rain) => inRange(rad, -10, 35) && inRange(rain, 0, 25)
   },
   {
-    title: 'Xeric Shrubland',
+    title: 'Arid Shrubland',
     color: [171, 95, 57],
     type: 'land',
     test: (rad, rain) => inRange(rad, -10, 35) && inRange(rain, 25, 125)
@@ -56,8 +56,8 @@ export const BIOMES: Array<Biome> = [
     title: 'Semiarid Desert',
     color: [215, 170, 110],
     type: 'land',
-    test: (rad, rain) => (inRange(rad, -10, 35) && inRange(rain, 75, 250)) || 
-                         (inRange(rad, 20, 35) && inRange(rain, 250, 500))
+    test: (rad, rain) => (inRange(rad, 5, 20) && inRange(rain, 125, 250)) || 
+                         (inRange(rad, 20, 35) && inRange(rain, 125, 500))
   },
   {
     title: 'Dry Steppe',
@@ -105,7 +105,7 @@ export const BIOMES: Array<Biome> = [
     title: 'Boreal Forest',
     color: [28, 94, 74],
     type: 'land',
-    test: (rad, rain) => inRange(rad, -10, 0) && inRange(rain, 75, 7000),
+    test: (rad, rain) => inRange(rad, -10, 0) && inRange(rain, 125, 7000),
   },
   {
     title: 'Temperate Forest',
@@ -154,7 +154,9 @@ export const BIOMES: Array<Biome> = [
     title: 'Ocean',
     type: 'water',
     color: [4, 53, 70],
-    test: (rad, rain, height, sealevel) => height < sealevel - 10
+    test: (rad, rain, height, sealevel) => height < sealevel - 10 &&
+      !((inRange(height - sealevel, -10, 0) && rad < -20) ||
+      (inRange(rad, -30, -20)))
   },
   {
     title: 'Coral Reef',
@@ -164,13 +166,4 @@ export const BIOMES: Array<Biome> = [
       return rad > CORAL_REEF_TEMP_CUTOFF && height <= sealevel && height >= sealevel - 10;
     }
   },
-
-  // no biome
-
-  // {
-  //   title: 'No biome',
-  //   color: [0, 0, 0],
-  //   type: 'land',
-  //   test: () => true,
-  // },
 ];

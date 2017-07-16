@@ -98,12 +98,15 @@ function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
     const radiation = radiationMap.get(x, y);
     const rainfall = rainfallMap.get(x, y);
     const type = height < sealevel ? 'water' : 'land';
-    const biome = find(BIOMES, (biome => {
+    const biomes = BIOMES.filter((biome => {
       return biome.type === type && biome.test(radiation, rainfall, height, sealevel);
     }));
-    if (!biome) {
+    if (biomes.length === 0) {
       throw new Error(`Cannot find biome at (${x}, ${y}) with radiation: ${radiation} and rainfall ${rainfall} at height ${height}`);
+    } else if (biomes.length > 1) {
+      throw new Error(`Found ${biomes.length} possible biomes at (${x}, ${y}): Biomes: ${biomes.map(i => i.title).join(', ')} with radiation: ${radiation} and rainfall ${rainfall} at height ${height}`);
     }
+    const biome = biomes[0];
     return biome ? BIOMES.indexOf(biome) : 0;
   });
   return biomeMap;
