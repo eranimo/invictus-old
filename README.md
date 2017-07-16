@@ -2,7 +2,7 @@
 
 WIP browser game engine.
 
-![Screenshot of UI](assets/images/screenshot.png)
+![Screenshot of UI](assets/images/screenshot.png?r=1)
 
 ## Features
 
