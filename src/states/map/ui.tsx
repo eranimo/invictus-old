@@ -42,6 +42,9 @@ export const moveCursor = (coordinate: Phaser.Point) => ({ type: MOVE_CURSOR, pa
 export const SET_LOADING = 'SET_LOADING';
 export const setLoading = (isLoading: boolean) => ({ type: SET_LOADING, payload: isLoading });
 
+export const TOGGLE_KEYBOARD_HELP = 'TOGGLE_KEYBOARD_HELP';
+export const toggleKeyboardHelp = () => ({ type: TOGGLE_KEYBOARD_HELP });
+
 interface TopUIProps {
   view?: number
 
@@ -61,9 +64,10 @@ interface TopUIProps {
   save?: () => void
   setMapSeed?: (seed: number) => void,
   setMapSize?: (size: number) => void,
+  toggleKeyboardHelp?: () => any,
 }
 
-@connect(state => state, { setView, toggleGrid, setMapSeed, setMapSize })
+@connect(state => state, { setView, toggleGrid, setMapSeed, setMapSize, toggleKeyboardHelp})
 class TopUI extends React.Component<TopUIProps, any> {
 
   renderViewMenu() {
@@ -181,6 +185,11 @@ class TopUI extends React.Component<TopUIProps, any> {
             </div>
           </div>
           <div className="pt-navbar-group pt-align-right">
+            <Button
+              iconName="help"
+              onClick={this.props.toggleKeyboardHelp}
+              className="mr-1"
+            />
             <div className="pt-button-group">
               <Button
                 iconName="floppy-disk"
@@ -283,6 +292,46 @@ class LoadingUI extends React.Component<{ isLoading?: boolean }, null> {
   }
 }
 
+@connect(state => ({
+  showKeyboardHelp: state.showKeyboardHelp
+}))
+class KeyboardHelpUI extends React.Component<{ showKeyboardHelp?: boolean }, null> {
+  render() {
+    if (!this.props.showKeyboardHelp) {
+      return null;
+    }
+    return (
+      <div className="help-ui">
+        <div className="modal-header">
+          <h1>Keyboard Shortcuts</h1>
+        </div>
+        <table>
+          <tr>
+            <td><code>m</code></td>
+            <td>Go to game</td>
+          </tr>
+          <tr>
+            <td><code>r</code></td>
+            <td>Refresh</td>
+          </tr>
+          <tr>
+            <td><code>v</code></td>
+            <td>Cycle views</td>
+          </tr>
+          <tr>
+            <td><code>Esc</code></td>
+            <td>Clear cursor selection</td>
+          </tr>
+          <tr>
+            <td><code>?</code></td>
+            <td>Toggle this help</td>
+          </tr>
+        </table>
+      </div>
+    );
+  }
+}
+
 export interface UIState {
   view: number,
   showGrid: boolean,
@@ -292,6 +341,7 @@ export interface UIState {
   currentSector: Phaser.Point | null,
   cursor: Phaser.Point | null,
   isLoading: boolean,
+  showKeyboardHelp: boolean,
 };
 
 const initialState: UIState = {
@@ -303,6 +353,7 @@ const initialState: UIState = {
   currentSector: null,
   cursor: null,
   isLoading: false,
+  showKeyboardHelp: false,
 };
 
 const reducer = (state = initialState, action) => {
@@ -347,6 +398,11 @@ const reducer = (state = initialState, action) => {
         ...state,
         isLoading: action.payload,
       };
+    case TOGGLE_KEYBOARD_HELP:
+      return {
+        ...state,
+        showKeyboardHelp: !state.showKeyboardHelp,
+      };
     default:
       return state;
   }
@@ -364,6 +420,7 @@ class App extends React.Component {
           <TopUI {...this.props} />
           <CursorUI {...this.props} />
           <LoadingUI />
+          <KeyboardHelpUI />
         </div>
       </Provider>
     )
