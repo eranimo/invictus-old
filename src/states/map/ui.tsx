@@ -205,7 +205,7 @@ class TopUI extends React.Component<TopUIProps, any> {
   }
 }
 
-interface CursorUIProps {
+interface InfoUIProps {
   cursor?: Phaser.Point | null;
   regen?: (shouldClear?: boolean) => void,
   currentRegion?: Phaser.Point,
@@ -219,57 +219,98 @@ interface CursorUIProps {
   state => state,
   { selectRegion, selectSector, moveCursor }
 )
-class CursorUI extends React.Component<CursorUIProps, {}> {
+class InfoUI extends React.Component<InfoUIProps, {}> {
   render() {
     const { cursor, regen, currentRegion, currentSector, moveCursor, selectRegion, selectSector } = this.props;
-    if (!cursor) {
-      return null;
-    }
 
     return (
-      <div className="cursor-ui">
-        <div className="header">Cursor <b>({cursor.x}, {cursor.y})</b></div>
-        <div className="content">
-          <Button
-            onClick={() => {
-              if (!currentRegion) {
-                // at world, select region
-                console.log('select region');
-                selectRegion(cursor);
-              } else if (!currentSector) {
-                // at region, select sector
-                console.log('Select sector');
-                selectSector(cursor);
-              } else if (currentSector) {
-                // at sector sector
-                // TODO: implement selecting local
-                console.log('Select local');
-              }
-              moveCursor(null);
-              regen(false);
-            }}
-            iconName="zoom-in"
-            text="Zoom In"
-          />
-          <Button
-            onClick={() => {
-              if (currentSector) {
-                // zoom out to region map
-                selectSector(null);
-                moveCursor(null);
-                regen();
-              } else if (currentRegion) {
-                // zoom out to world map
+      <div className="info-ui">
+        <div className="header">
+          <ul className="pt-breadcrumbs"> 
+            <li><a
+              className={"pt-breadcrumb" +
+                (!currentRegion && !currentSector && " pt-breadcrumb-current" || "")}
+              href="#"
+              onClick={() => {
                 selectRegion(null);
                 selectSector(null);
                 moveCursor(null);
                 regen(false);
-              }
-            }}
-            iconName="zoom-out"
-            text="Zoom Out"
-          />
+              }}
+            >World Map</a></li>
+            {currentRegion &&
+              <li><a
+                className={"pt-breadcrumb" +
+                  (!currentSector && " pt-breadcrumb-current" || "")}
+                href="#"
+                onClick={() => {
+                  selectRegion(currentRegion);
+                  selectSector(null);
+                  moveCursor(null);
+                  regen(false);
+                }}
+              >Region: ({currentRegion.x}, {currentRegion.y})</a></li>
+            }
+            {currentSector &&
+              <li><a
+                className="pt-breadcrumb pt-breadcrumb-current"
+                href="#"
+                onClick={() => {
+                  selectRegion(currentRegion);
+                  selectSector(currentSector);
+                  moveCursor(null);
+                  regen(false);
+                }}
+              >Sector: ({currentSector.x}, {currentSector.y})</a></li>
+            }
+          </ul>
         </div>
+        {cursor &&
+          <div className="cursor-ui">
+            <div className="header">Cursor <b>({cursor.x}, {cursor.y})</b></div>
+            <div className="content">
+              <Button
+                onClick={() => {
+                  if (!currentRegion) {
+                    // at world, select region
+                    console.log('select region');
+                    selectRegion(cursor);
+                  } else if (!currentSector) {
+                    // at region, select sector
+                    console.log('Select sector');
+                    selectSector(cursor);
+                  } else if (currentSector) {
+                    // at sector sector
+                    // TODO: implement selecting local
+                    console.log('Select local');
+                  }
+                  moveCursor(null);
+                  regen(false);
+                }}
+                iconName="zoom-in"
+                text="Zoom In"
+              />
+              <Button
+                onClick={() => {
+                  if (currentSector) {
+                    // zoom out to region map
+                    selectSector(null);
+                    moveCursor(null);
+                    regen();
+                  } else if (currentRegion) {
+                    // zoom out to world map
+                    selectRegion(null);
+                    selectSector(null);
+                    moveCursor(null);
+                    regen(false);
+                  }
+                }}
+                iconName="zoom-out"
+                text="Zoom Out"
+              />
+            </div>
+          </div>
+      }
       </div>
     )
   }
@@ -285,7 +326,7 @@ class LoadingUI extends React.Component<{ isLoading?: boolean }, null> {
     }
     return (
       <div className="loading-ui">
-        <div>Generating Map</div>
+        <div className="mb-1">Generating Map</div>
         <Spinner />
       </div>
     );
@@ -418,7 +459,7 @@ class App extends React.Component {
       <Provider store={store}>
         <div>
           <TopUI {...this.props} />
-          <CursorUI {...this.props} />
+          <InfoUI {...this.props} />
           <LoadingUI />
           <KeyboardHelpUI />
         </div>

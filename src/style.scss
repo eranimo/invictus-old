@@ -28,15 +28,15 @@ canvas {
 
 $border-color: rgb(1, 123, 191);
 $bg-color: #202B33;
-.cursor-ui {
+.info-ui {
   background-color: $bg-color;
   border-top: 1px solid $border-color;
   border-right: 1px solid  $border-color;
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 250px;
-  height: 150px;
+  width: 350px;
+  min-height: 50px;
   color: #CED9E0;
 
   .header {
@@ -54,7 +54,7 @@ $bg-color: #202B33;
 .modal-ui {
   position: fixed;
   width: 200px;
-  height: 100px;
+  height: 125px;
   top: calc(50% - 50px);
   left: calc(50% - 50px);
   background-color: $bg-color;
@@ -94,6 +94,10 @@ $bg-color: #202B33;
 
 .ml-1 {
   margin-left: 1rem;
+}
+
+.mb-1 {
+  margin-bottom: 1rem;
 }
 
 .full-width {
