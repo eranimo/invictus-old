@@ -461,6 +461,8 @@ export default class Map extends State {
         this.hoverText.setText(`
           Location: (${this.hoverPointInfo.cx}, ${this.hoverPointInfo.cy})
 Height: ${this.hoverPointInfo.height}
+Altitude: ${this.hoverPointInfo.height - SEALEVEL}
+Type: ${this.hoverPointInfo.height < SEALEVEL ? 'Water' : 'Land'}
 Biome: ${BIOMES[this.hoverPointInfo.biome].title}
 Radiation: ${this.hoverPointInfo.radiation}
 Rainfall: ${this.hoverPointInfo.rainfall}
