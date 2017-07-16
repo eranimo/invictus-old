@@ -275,7 +275,7 @@ export default class Map extends State {
     } else if (this.mapState.currentSector) {
       // regen world, sector, and sector
       if (this.gameMap.store.sector) {
-        this.currentSegment = this.gameMap.store.region[
+        this.currentSegment = this.gameMap.store.sector[
           this.mapState.currentSector.x + '.' + this.mapState.currentSector.y
         ];
         this.renderMap();
