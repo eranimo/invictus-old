@@ -38,5 +38,5 @@ Run the webpack and development server.
 npm run dev
 ```
 
-Copy and paste the "Local" URL from the output into your browser URL bar to
-visit the website.
+Look for `Project is running at http://localhost:4000/` in the output. Copy and
+paste that URL in your browser's URL bar to view the website.
