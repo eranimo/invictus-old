@@ -6,9 +6,12 @@ WIP browser game engine.
 
 ## Features
 
-* Zoomable world map
+* Zoomable procedurally generated world map (world, region, sector, and local
+  levels)
 * Map views: heightmap, sea level, radiation (temperature), rainfall, and biome
+* Adjustable pixel resolution
 * Asynchronous worker process architecture for map generation
+* Sprite-based randomly generated local map
 
 ## Installation
 
@@ -32,7 +35,7 @@ Install dependencies.
 npm install
 ```
 
-Run the webpack and development server.
+Run webpack and the development server.
 
 ```
 npm run dev
