@@ -336,7 +336,7 @@ export default class Map extends State {
     keys.refresh.onUp.add(() => {
       console.log('refresh');
       store.dispatch(setMapSeed(Math.random()));
-      this.fetchMap();
+      this.clearMap();
     });
     keys.esc.onUp.add(() => {
       store.dispatch(moveCursor(null));
@@ -353,7 +353,7 @@ export default class Map extends State {
       store.dispatch(moveCursor(coordinate));
     }
   }
-
+gp
   async create() {
     this.setupKeyboard();
 
