@@ -27,24 +27,19 @@ class Game extends Phaser.Game {
     this.state.add('Map', MapState, false);
     this.state.start('Boot');   
     
-    
+
     const topUI = document.createElement('div');
     topUI.id = 'topUI';
     topUI.classList.add('pt-dark');
     document.body.appendChild(topUI);
-  }
 
-  reload() {
-    this.renderer.renderSession.roundPixels = true;
-    Phaser.Canvas.setImageRenderingCrisp(this.canvas);
-
-    window.addEventListener('resize', this.updateGameSize.bind(this));
-    window.addEventListener('touchmove', this.updateGameSize.bind(this));
+    window.addEventListener('resize', this.updateGameSize.bind(this), true);
+    window.addEventListener('touchmove', this.updateGameSize.bind(this), true);
   }
 
   updateGameSize() {
+    console.log('resize');
     this.scale.setGameSize(window.innerWidth, window.innerHeight - UI_TOP_PX);
-    this.reload();
   }
 }
 
