@@ -3,6 +3,7 @@ import { Game, State, Sprite, Point} from 'phaser-ce';
 import * as MapGenerator from 'worker-loader!../workers/worldMapGenerator';
 import ndarray from 'ndarray';
 import { VIEWS, View } from './map/views';
+import { SIZES } from './map/sizes';
 import renderUI, {
   store,
   setView,
@@ -74,27 +75,33 @@ export default class Map extends State {
   mapState: UIState;
   currentSegment: MapSegmentData;
 
+  redrawGrid: boolean;
+
   init() {
     this.stage.backgroundColor = '#2d2d2d';
     this.regionScale = 10;
 
-    this.world.scale.set(1000 / 900);
+    // this.world.scale.set(1000 / 900);
 
     this.gameMap = blankGameMap;
     this.mapState = store.getState();
+    let lastState = null;
     store.subscribe(() => {
       this.mapState = store.getState();
-      this.gameMap.settings.size = this.mapState.size;
-      this.gameMap.settings.seed = this.mapState.seed;
       this.renderMap();
       this.updateCursor();
+      lastState = this.mapState;
     });
 
     renderUI({
       save: () => console.log('save map'),
-      regen: () => {
+      regen: (shouldClear) => {
         console.log('regen map');
-        this.newMap();
+        if (shouldClear) {
+          this.clearMap();
+        } else {
+          this.fetchMap();
+        }
       }
     });
 
@@ -142,15 +149,17 @@ export default class Map extends State {
 
   renderMap() {
     console.log('rendering', this.currentSegment);
+    const size = this.gameMap.settings.size;
+
     if (!this.currentSegment) {
       console.warn('Cannot render, map is loading...');
       return;
     }
     return new Promise((resolve) => {
       const viewFn = VIEWS[this.mapState.view].fn;
-      const imageData = this.mapBitmapData.context.createImageData(this.mapState.size, this.mapState.size);
-      for (let x = 0; x < this.mapState.size; x++) {
-        for (let y = 0; y < this.mapState.size; y++) {
+      const imageData = this.mapBitmapData.context.createImageData(size, size);
+      for (let x = 0; x < size; x++) {
+        for (let y = 0; y < size; y++) {
           const [r, g, b, a] = viewFn({
             height: this.currentSegment.heightmap.get(x, y),
             radiation: this.currentSegment.radiation.get(x, y),
@@ -158,16 +167,25 @@ export default class Map extends State {
             biome: this.currentSegment.biome.get(x, y),
             sealevel: SEALEVEL,
           });
-          const index = (x + y * this.mapState.size) * 4;
+          const index = (x + y * size) * 4;
           imageData.data[index + 0] = r;
           imageData.data[index + 1] = g;
           imageData.data[index + 2] = b;
           imageData.data[index + 3] = (a || 1) * 255;
         }
       }
-      this.mapBitmapData.context.fillRect(0, 0, this.mapState.size, this.mapState.size);
+      this.mapBitmapData.clear();
+      const { mapSpriteSize, mapScale } = SIZES.find(i => i.size === size)
       this.mapBitmapData.context.putImageData(imageData, 0, 0);
       this.mapBitmapData.dirty = true;
+      this.mapSprite.width = mapSpriteSize;
+      this.mapSprite.height = mapSpriteSize;
+      this.mapSprite.scale.set(mapScale);
+      console.log('mapBitmapData', this.mapBitmapData);
+
+      if (this.redrawGrid) {
+        console.log('redraw grid!');
+      }
       resolve();
     });
   }
@@ -183,19 +201,24 @@ export default class Map extends State {
     }
   }
 
-  newMap() {
+  clearMap() {
     this.gameMap.store = {
       world: null,
       region: null,
       sector: null,
     };
-    this.regen();
+    this.fetchMap();
   }
 
   /**
    * Regenerates the current level and all above it
    */
-  regen() {
+  fetchMap() {
+    
+    this.gameMap.settings.seed = this.mapState.seed;
+    this.redrawGrid = this.gameMap.settings.size !== this.mapState.size;
+    this.gameMap.settings.size = this.mapState.size;
+
     if (!this.mapState.currentRegion) {
       // regen world
 
@@ -291,7 +314,7 @@ export default class Map extends State {
     keys.refresh.onUp.add(() => {
       console.log('refresh');
       store.dispatch(setMapSeed(Math.random()));
-      this.regen();
+      this.fetchMap();
     });
     keys.esc.onUp.add(() => {
       store.dispatch(moveCursor(null));
@@ -309,6 +332,11 @@ export default class Map extends State {
     }
   }
 
+  updateGrid() {
+    const size = this.gameMap.settings.size;
+
+  }
+
   async create() {
     this.setupKeyboard();
 
@@ -317,7 +345,7 @@ export default class Map extends State {
 
     this.mapBitmapData = this.game.add.bitmapData(this.mapState.size, this.mapState.size);
 
-    this.regen();
+    this.fetchMap();
 
     // world map sprite
     this.mapSprite = this.game.add.sprite(0, 0, this.mapBitmapData);
@@ -388,6 +416,7 @@ export default class Map extends State {
   }
 
   update() {
+    // this.game.debug.spriteInfo(this.mapSprite, 50, 50);
     const gridAlpha = this.mapState.showGrid ? 1 : 0;
     this.mapGrid.alpha = gridAlpha;
 

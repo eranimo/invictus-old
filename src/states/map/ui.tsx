@@ -194,7 +194,7 @@ class TopUI extends React.Component<TopUIProps, any> {
 
 interface CursorUIProps {
   cursor?: Phaser.Point | null;
-  regen?: () => void,
+  regen?: (shouldClear?: boolean) => void,
   currentRegion?: Phaser.Point,
   currentSector?: Phaser.Point,
   selectRegion?: (coordinate: Phaser.Point) => void,
@@ -233,7 +233,7 @@ class CursorUI extends React.Component<CursorUIProps, {}> {
                 console.log('Select local');
               }
               moveCursor(null);
-              regen();
+              regen(false);
             }}
             iconName="zoom-in"
             text="Zoom In"
@@ -250,7 +250,7 @@ class CursorUI extends React.Component<CursorUIProps, {}> {
                 selectRegion(null);
                 selectSector(null);
                 moveCursor(null);
-                regen();
+                regen(false);
               }
             }}
             iconName="zoom-out"
@@ -275,7 +275,7 @@ export interface UIState {
 const initialState: UIState = {
   view: 4,
   showGrid: false,
-  size: 250,
+  size: 500,
   seed: Math.random(),
   currentRegion: null,
   currentSector: null,
