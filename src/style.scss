@@ -25,8 +25,9 @@ canvas {
 }
 
 $border-color: rgb(1, 123, 191);
+$bg-color: #202B33;
 .cursor-ui {
-  background-color: #202B33;
+  background-color: $bg-color;
   border-top: 1px solid $border-color;
   border-right: 1px solid  $border-color;
   position: fixed;
@@ -46,6 +47,20 @@ $border-color: rgb(1, 123, 191);
   .content {
     padding: 1rem;
   }
+}
+
+.loading-ui {
+  position: fixed;
+  width: 200px;
+  height: 100px;
+  top: calc(50% - 50px);
+  left: calc(50% - 50px);
+  background-color: $bg-color;
+  border: 1px solid $border-color;
+  padding: 1rem;
+  color: #CED9E0;
+  font-size: 1rem;
+  text-align: center;
 }
 
 .mr-1 {

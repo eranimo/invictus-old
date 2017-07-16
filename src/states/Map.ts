@@ -13,6 +13,7 @@ import renderUI, {
   selectRegion,
   selectSector,
   moveCursor,
+  setLoading,
 } from './map/ui';
 
 
@@ -88,8 +89,10 @@ export default class Map extends State {
     let lastState = null;
     store.subscribe(() => {
       this.mapState = store.getState();
-      this.renderMap();
-      this.updateCursor();
+      if (!this.mapState.isLoading) {
+        this.renderMap();
+        this.updateCursor();
+      }
       lastState = this.mapState;
     });
 
@@ -109,6 +112,7 @@ export default class Map extends State {
   }
 
   async generateMap(level: string): Promise<MapSegmentData> {
+    store.dispatch(setLoading(true));
     return new Promise<MapSegmentData>((resolve: any) => {
       let position = { x: 0, y: 0 };
       if (this.mapState.currentRegion && !this.mapState.currentSector) {
@@ -142,6 +146,7 @@ export default class Map extends State {
         data.rainfall = ndarray(event.data.rainfall, [this.mapState.size, this.mapState.size]);
         data.biome = ndarray(event.data.biome, [this.mapState.size, this.mapState.size]);
         Object.freeze(data);
+        store.dispatch(setLoading(false));
         resolve(data);
       });
     });

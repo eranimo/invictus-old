@@ -9,7 +9,8 @@ import {
   Checkbox,
   PopoverInteractionKind,
   InputGroup,
-  Tooltip
+  Tooltip,
+  Spinner
 } from '@blueprintjs/core';
 import { createStore, applyMiddleware } from 'redux';
 import { Provider, connect } from 'react-redux';
@@ -37,6 +38,9 @@ export const selectSector = (coordinate: Phaser.Point) => ({ type: SELECT_SECTOR
 
 export const MOVE_CURSOR = 'MOVE_CURSOR';
 export const moveCursor = (coordinate: Phaser.Point) => ({ type: MOVE_CURSOR, payload: coordinate });
+
+export const SET_LOADING = 'SET_LOADING';
+export const setLoading = (isLoading: boolean) => ({ type: SET_LOADING, payload: isLoading });
 
 interface TopUIProps {
   view?: number
@@ -262,6 +266,23 @@ class CursorUI extends React.Component<CursorUIProps, {}> {
   }
 }
 
+@connect(state => ({
+  isLoading: state.isLoading
+}))
+class LoadingUI extends React.Component<{ isLoading?: boolean }, null> {
+  render() {
+    if (!this.props.isLoading) {
+      return null;
+    }
+    return (
+      <div className="loading-ui">
+        <div>Generating Map</div>
+        <Spinner />
+      </div>
+    );
+  }
+}
+
 export interface UIState {
   view: number,
   showGrid: boolean,
@@ -270,6 +291,7 @@ export interface UIState {
   currentRegion: Phaser.Point | null,
   currentSector: Phaser.Point | null,
   cursor: Phaser.Point | null,
+  isLoading: boolean,
 };
 
 const initialState: UIState = {
@@ -280,6 +302,7 @@ const initialState: UIState = {
   currentRegion: null,
   currentSector: null,
   cursor: null,
+  isLoading: false,
 };
 
 const reducer = (state = initialState, action) => {
@@ -319,6 +342,11 @@ const reducer = (state = initialState, action) => {
         ...state,
         cursor: action.payload,
       };
+    case SET_LOADING:
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
     default:
       return state;
   }
@@ -335,6 +363,7 @@ class App extends React.Component {
         <div>
           <TopUI {...this.props} />
           <CursorUI {...this.props} />
+          <LoadingUI />
         </div>
       </Provider>
     )
