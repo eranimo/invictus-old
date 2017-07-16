@@ -14,6 +14,7 @@ import renderUI, {
   selectSector,
   moveCursor,
   setLoading,
+  toggleKeyboardHelp,
 } from './map/ui';
 import { BIOMES } from 'mapgen/biomes';
 
@@ -320,6 +321,7 @@ export default class Map extends State {
       grid: Phaser.Keyboard.G,
       view: Phaser.Keyboard.V,
       esc: Phaser.Keyboard.ESC,
+      help: Phaser.Keyboard.QUESTION_MARK,
     });
     keys.map.onUp.add(() => {
       console.log('Go to Game');
@@ -340,6 +342,9 @@ export default class Map extends State {
     });
     keys.esc.onUp.add(() => {
       store.dispatch(moveCursor(null));
+    });
+    keys.help.onUp.add(() => {
+      store.dispatch(toggleKeyboardHelp());
     });
   }
 
