@@ -465,6 +465,8 @@ Biome: ${BIOMES[this.hoverPointInfo.biome].title}
 Radiation: ${this.hoverPointInfo.radiation}
 Rainfall: ${this.hoverPointInfo.rainfall}
         `.trim());
+      } else {
+        this.hoverText.setText('');
       }
     }
     
