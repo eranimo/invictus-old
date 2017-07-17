@@ -227,42 +227,52 @@ class InfoUI extends React.Component<InfoUIProps, {}> {
       <div className="info-ui">
         <div className="header">
           <ul className="pt-breadcrumbs"> 
-            <li><a
-              className={"pt-breadcrumb" +
-                (!currentRegion && !currentSector && " pt-breadcrumb-current" || "")}
-              href="#"
-              onClick={() => {
-                selectRegion(null);
-                selectSector(null);
-                moveCursor(null);
-                regen(false);
-              }}
-            >World Map</a></li>
-            {currentRegion &&
-              <li><a
-                className={"pt-breadcrumb" +
-                  (!currentSector && " pt-breadcrumb-current" || "")}
+            <li>
+              <a
+                className={"pt-breadcrumb" + (!currentRegion && !currentSector && " pt-breadcrumb-current" || "")}
                 href="#"
                 onClick={() => {
-                  selectRegion(currentRegion);
+                  selectRegion(null);
                   selectSector(null);
                   moveCursor(null);
                   regen(false);
                 }}
-              >Region: ({currentRegion.x}, {currentRegion.y})</a></li>
-            }
-            {currentSector &&
-              <li><a
-                className="pt-breadcrumb pt-breadcrumb-current"
-                href="#"
-                onClick={() => {
-                  selectRegion(currentRegion);
-                  selectSector(currentSector);
-                  moveCursor(null);
-                  regen(false);
-                }}
-              >Sector: ({currentSector.x}, {currentSector.y})</a></li>
-            }
+              >
+                World Map
+              </a>
+            </li>
+            {currentRegion && (
+              <li>
+                <a
+                  className={"pt-breadcrumb" + (!currentSector && " pt-breadcrumb-current" || "")}
+                  href="#"
+                  onClick={() => {
+                    selectRegion(currentRegion);
+                    selectSector(null);
+                    moveCursor(null);
+                    regen(false);
+                  }}
+                >
+                  Region: ({currentRegion.x}, {currentRegion.y})
+                </a>
+              </li>
+            )}
+            {currentSector && (
+              <li>
+                <a
+                  className="pt-breadcrumb pt-breadcrumb-current"
+                  href="#"
+                  onClick={() => {
+                    selectRegion(currentRegion);
+                    selectSector(currentSector);
+                    moveCursor(null);
+                    regen(false);
+                  }}
+                >
+                  Sector: ({currentSector.x}, {currentSector.y})
+                </a>
+              </li>
+            )}
           </ul>
         </div>
         {cursor &&
@@ -289,24 +299,6 @@ class InfoUI extends React.Component<InfoUIProps, {}> {
                 }}
                 iconName="zoom-in"
                 text="Zoom In"
-              />
-              <Button
-                onClick={() => {
-                  if (currentSector) {
-                    // zoom out to region map
-                    selectSector(null);
-                    moveCursor(null);
-                    regen();
-                  } else if (currentRegion) {
-                    // zoom out to world map
-                    selectRegion(null);
-                    selectSector(null);
-                    moveCursor(null);
-                    regen(false);
-                  }
-                }}
-                iconName="zoom-out"
-                text="Zoom Out"
               />
             </div>
           </div>

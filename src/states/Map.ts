@@ -276,9 +276,7 @@ export default class Map extends State {
         this.generateMap('region')
           .then(((data: MapSegmentData) => {
             console.log('generate region map')
-            this.gameMap.store.region[
-              this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y
-            ] = data;
+            this.gameMap.store.region[index] = data;
             this.currentSegment = data;
             this.renderMap();
             console.log('MAP:', this.gameMap);
@@ -302,9 +300,7 @@ export default class Map extends State {
         this.generateMap('sector')
           .then(((data: MapSegmentData) => {
             console.log('generate sector map')
-            this.gameMap.store.sector[
-              this.mapState.currentSector.x + '.' + this.mapState.currentSector.y
-            ] = data;
+            this.gameMap.store.sector[index] = data;
             this.currentSegment = data;
             this.renderMap();
             console.log('MAP:', this.gameMap);
