@@ -56,6 +56,7 @@ const blankGameMap: GameMap = {
   },
 };
 
+const VIEW_SIZE = 1000;
 const SEALEVEL = 150;
 
 export default class Map extends State {
@@ -117,8 +118,8 @@ export default class Map extends State {
 
   get hoverPointInfo() {
     const { x, y } = this.hoverPoint;
-    const cx: number = Math.round((x / 1000) * this.mapState.size);
-    const cy: number = Math.round((y / 1000) * this.mapState.size);
+    const cx: number = Math.round((x / VIEW_SIZE) * this.mapState.size);
+    const cy: number = Math.round((y / VIEW_SIZE) * this.mapState.size);
 
     return {
       cx, cy,
@@ -198,12 +199,14 @@ export default class Map extends State {
         }
       }
       this.mapBitmapData.clear();
-      const { mapSpriteSize, mapScale } = SIZES.find(i => i.size === size)
+      // const { mapSpriteSize, mapScale } = SIZES.find(i => i.size === size)
       this.mapBitmapData.context.putImageData(imageData, 0, 0);
       this.mapBitmapData.dirty = true;
-      this.mapSprite.width = mapSpriteSize;
-      this.mapSprite.height = mapSpriteSize;
-      this.mapSprite.scale.set(mapScale);
+      const scale = VIEW_SIZE / size;
+      this.mapBitmapData.context.scale(scale, scale);
+      this.mapSprite.scale.set(scale);
+      // this.mapSprite.width = size;
+      // this.mapSprite.height = size;
       console.log('mapBitmapData', this.mapBitmapData);
 
       if (this.redrawGrid) {
@@ -354,7 +357,7 @@ export default class Map extends State {
       store.dispatch(moveCursor(coordinate));
     }
   }
-gp
+
   async create() {
     this.setupKeyboard();
 
@@ -367,8 +370,8 @@ gp
 
     // world map sprite
     this.mapSprite = this.game.add.sprite(0, 0, this.mapBitmapData);
-    this.mapSprite.width = 1000;
-    this.mapSprite.height = 1000;
+    this.mapSprite.width = VIEW_SIZE;
+    this.mapSprite.height = VIEW_SIZE;
     this.mapSprite.smoothed = false;
 
     ui.add(this.mapSprite);

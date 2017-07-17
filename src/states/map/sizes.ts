@@ -21,7 +21,7 @@ export const SIZES: Array<MapSize> = [
   {
     name: 'Large',
     size: 500,
-    mapSpriteSize: 4000,
+    mapSpriteSize: 500,
     mapScale: 2,
   }
 ]
