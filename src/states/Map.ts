@@ -94,9 +94,15 @@ export default class Map extends State {
     let lastState = null;
     store.subscribe(() => {
       this.mapState = store.getState();
-      if (!this.mapState.isLoading) {
+      if (!this.mapState.isLoading && lastState.view !== this.mapState.view) {
         this.renderMap();
-        this.updateCursor();
+      }
+      if (!this.mapState.isLoading) {
+        if (lastState && lastState.cursor !== this.mapState.cursor) {
+          this.updateCursor();
+        } else if (!lastState) {
+          this.updateCursor();
+        }
       }
       lastState = this.mapState;
     });
