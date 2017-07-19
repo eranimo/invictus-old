@@ -6,16 +6,24 @@ import { VIEWS, View } from './map/views';
 import { SIZES } from './map/sizes';
 import renderUI, {
   store,
+  runSaga,
+} from './map/ui';
+import {
   setView,
   setMapSeed,
+  setMapSize,
   toggleGrid,
-  UIState,
   selectRegion,
   selectSector,
   moveCursor,
   setLoading,
   toggleKeyboardHelp,
-} from './map/ui';
+
+  MOVE_CURSOR,
+  SET_VIEW,
+} from './map/ui/redux';
+import { UIState } from './map/ui/redux';
+import { takeLatest } from 'redux-saga/effects';
 import { BIOMES } from 'mapgen/biomes';
 
 
@@ -90,21 +98,29 @@ export default class Map extends State {
     // this.world.scale.set(1000 / 900);
 
     this.gameMap = blankGameMap;
+
+    let self = this;
+    runSaga(function *mainSaga() {
+      yield [
+        takeLatest([
+          MOVE_CURSOR,
+        ], function *moveCursorSaga() {
+          console.log('move cursor saga');
+          self.updateCursor();
+        }),
+
+        takeLatest([
+          SET_VIEW,
+        ], function *updateMap() {
+          console.log('render map saga');
+          self.renderMap();
+        }),
+      ];
+    });
+
     this.mapState = store.getState();
-    let lastState = null;
     store.subscribe(() => {
       this.mapState = store.getState();
-      if (!this.mapState.isLoading && lastState.view !== this.mapState.view) {
-        this.renderMap();
-      }
-      if (!this.mapState.isLoading) {
-        if (lastState && lastState.cursor !== this.mapState.cursor) {
-          this.updateCursor();
-        } else if (!lastState) {
-          this.updateCursor();
-        }
-      }
-      lastState = this.mapState;
     });
 
     renderUI({
