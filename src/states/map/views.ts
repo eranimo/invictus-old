@@ -1,6 +1,7 @@
 import colormap from 'colormap';
 import { groupBy } from 'lodash';
 import { BIOMES } from 'mapgen/biomes';
+import { random } from 'lodash';
 
 
 const contour = (value, c = 10) => Math.ceil(value / c) * c;
@@ -59,7 +60,12 @@ export const VIEWS: Array<View> = [
       //   return WATER;
       // }
       if (biome in BIOMES) {
-        return BIOMES[biome].color;
+        const [r, g, b] = BIOMES[biome].color;
+        return [
+          r + random(-2, 2),
+          g + random(-2, 2),
+          b + random(-2, 2)
+        ];
       }
       throw new Error(`Cannot find biome with id ${biome}`);
     }
