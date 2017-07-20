@@ -111,13 +111,13 @@ export default class Map extends State {
     store.dispatch(setLoading(true));
     if (!this.mapState.currentRegion) {
       // regen world
-      this.mapManager.fetchMap(MapLevels.world);
+      this.mapManager.fetchMapSegment(MapLevels.world);
     } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
       // regen world and region
-      this.mapManager.fetchMap(MapLevels.region, this.mapState.currentRegion);
+      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentRegion);
     } else if (this.mapState.currentSector) {
       // regen world, sector, and sector
-      this.mapManager.fetchMap(MapLevels.region, this.mapState.currentSector);
+      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentSector);
     }
   }
 

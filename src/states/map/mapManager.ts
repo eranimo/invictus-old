@@ -49,18 +49,11 @@ const blankGameMap: GameMap = {
 };
 
 interface IMapManagerOptions {
+  // called when a map segment was generated
   onGenerate: (segment: MapSegmentData) => void
 }
 
-/**
- * Generates, saves and loads game world maps
- * 
- * Methods
- * 
- * generate()
- * 
- * 
- **/
+// Generates, saves and loads game world maps
 export default class MapManager {
   gameMap: GameMap;
   onGenerate: (segment: MapSegmentData) => void;
@@ -72,7 +65,8 @@ export default class MapManager {
     let self = this;
   }
 
-  async generateMap(
+  // generates a map segment
+  async generateMapSegment(
     level: string,
     position: { x: number, y: number }
   ): Promise<MapSegmentData> {
@@ -101,10 +95,17 @@ export default class MapManager {
     });
   }
 
+  // creates a new map with new settings
   create(mapSettings: MapSettings) {
     this.gameMap.settings = mapSettings;
+    this.gameMap.store = {
+      world: null,
+      region: null,
+      sector: null,
+    };
   }
 
+  // resets current map, uses the same settings
   reset() {
     this.gameMap.store = {
       world: null,
@@ -113,10 +114,8 @@ export default class MapManager {
     };
   }
   
-  /**
-   * Regenerates the current level and all above it
-   */
-  fetchMap(
+  // Generates a map segment
+  fetchMapSegment(
     level: MapLevels,
     region?: { x: number, y: number },
     sector?: { x: number, y: number }
@@ -130,7 +129,7 @@ export default class MapManager {
           this.onGenerate(this.gameMap.store.world);
         } else {
           this.gameMap.store.world = null;
-          this.generateMap('world', { x: 0, y: 0 })
+          this.generateMapSegment('world', { x: 0, y: 0 })
             .then(((data: MapSegmentData) => {
               console.log('generate world map', data);
               this.gameMap.store.world = data;
@@ -148,7 +147,7 @@ export default class MapManager {
           if (!this.gameMap.store.region) {
             this.gameMap.store.region = {};
           }
-          this.generateMap('region', {
+          this.generateMapSegment('region', {
             x: region.x * size,
             y: region.y * size,
           })
@@ -170,7 +169,7 @@ export default class MapManager {
           if (!this.gameMap.store.sector) {
             this.gameMap.store.sector = {};
           }
-          this.generateMap('sector', {
+          this.generateMapSegment('sector', {
             x: (region.x * size * 10) + (sector.x * size),
             y: (region.y * size * 10) + (sector.y * size),
           })
