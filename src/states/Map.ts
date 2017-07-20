@@ -1,6 +1,4 @@
 import { Game, State, Sprite, Point} from 'phaser-ce';
-//import { time } from 'core-decorators';
-import * as MapGenerator from 'worker-loader!../workers/worldMapGenerator';
 import ndarray from 'ndarray';
 import { VIEWS, View } from './map/views';
 import { SIZES } from './map/sizes';
@@ -25,44 +23,8 @@ import {
 import { UIState } from './map/ui/redux';
 import { takeLatest } from 'redux-saga/effects';
 import { BIOMES } from 'mapgen/biomes';
+import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
-
-export interface MapSegmentData {
-  heightmap: ndarray,
-  radiation: ndarray,
-  rainfall: ndarray,
-  biome: ndarray,
-  level: any,
-  stats: any,
-};
-
-export interface GameMapStore {
-  [coord: string]: MapSegmentData | null
-};
-
-export interface GameMap {
-  settings: {
-    size: number,
-    seed: number,
-  },
-  store: {
-    world: MapSegmentData | null,
-    region: GameMapStore | null,
-    sector: GameMapStore | null,
-  }
-}
-
-const blankGameMap: GameMap = {
-  settings: {
-    size: 250,
-    seed: Math.random(),
-  },
-  store: {
-    world: null,
-    region: null,
-    sector: null,
-  },
-};
 
 const VIEW_SIZE = 1000;
 const SEALEVEL = 150;
@@ -83,9 +45,9 @@ export default class Map extends State {
 
   cursors: any;
 
-  gameMap: GameMap;
-  mapState: UIState;
+  mapManager: MapManager;
   currentSegment: MapSegmentData;
+  mapState: UIState;
 
   redrawGrid: boolean;
   hoverPoint: Point;
@@ -97,9 +59,20 @@ export default class Map extends State {
 
     // this.world.scale.set(1000 / 900);
 
-    this.gameMap = blankGameMap;
+    this.mapManager = new MapManager({
+      onGenerate: (segment: MapSegmentData) => {
+        this.currentSegment = segment;
+        store.dispatch(setLoading(false));
+        this.renderMap();
+      }
+    });
 
-    let self = this;
+    this.mapState = store.getState();
+    store.subscribe(() => {
+      this.mapState = store.getState();
+    });
+
+    const self = this;
     runSaga(function *mainSaga() {
       yield [
         takeLatest([
@@ -118,10 +91,7 @@ export default class Map extends State {
       ];
     });
 
-    this.mapState = store.getState();
-    store.subscribe(() => {
-      this.mapState = store.getState();
-    });
+    this.regionSize = this.mapState.size / this.regionScale;
 
     renderUI({
       save: () => console.log('save map'),
@@ -135,7 +105,20 @@ export default class Map extends State {
       },
     });
 
-    this.regionSize = this.mapState.size / this.regionScale;
+  }
+
+  fetchMap() {
+    store.dispatch(setLoading(true));
+    if (!this.mapState.currentRegion) {
+      // regen world
+      this.mapManager.fetchMapSegment(MapLevels.world);
+    } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
+      // regen world and region
+      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentRegion);
+    } else if (this.mapState.currentSector) {
+      // regen world, sector, and sector
+      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentSector);
+    }
   }
 
   get hoverPointInfo() {
@@ -152,50 +135,9 @@ export default class Map extends State {
     };
   }
 
-  async generateMap(level: string): Promise<MapSegmentData> {
-    store.dispatch(setLoading(true));
-    return new Promise<MapSegmentData>((resolve: any) => {
-      let position = { x: 0, y: 0 };
-      if (this.mapState.currentRegion && !this.mapState.currentSector) {
-        position = {
-          x: this.mapState.currentRegion.x * this.mapState.size,
-          y: this.mapState.currentRegion.y * this.mapState.size,
-        };
-      } else if (this.mapState.currentRegion && this.mapState.currentSector) {
-        position = {
-          x: (this.mapState.currentRegion.x * this.mapState.size * 10) + (this.mapState.currentSector.x * this.mapState.size),
-          y: (this.mapState.currentRegion.y * this.mapState.size * 10) + (this.mapState.currentSector.y * this.mapState.size),
-        };
-      }
-      const mapGenerator = new MapGenerator();
-      mapGenerator.postMessage({
-        heightmap: {
-          seed: this.mapState.seed,
-          size: this.mapState.size,
-          level,
-          position,
-          sealevel: SEALEVEL
-        },
-      });
-      console.log('Map gen', level, position);
-      mapGenerator.addEventListener('message', event => {
-        const data: MapSegmentData = Object.create(null);
-        data.level = level;
-        data.stats = event.data.stats;
-        data.heightmap = ndarray(event.data.heightmap, [this.mapState.size, this.mapState.size]);
-        data.radiation = ndarray(event.data.radiation, [this.mapState.size, this.mapState.size]);
-        data.rainfall = ndarray(event.data.rainfall, [this.mapState.size, this.mapState.size]);
-        data.biome = ndarray(event.data.biome, [this.mapState.size, this.mapState.size]);
-        Object.freeze(data);
-        store.dispatch(setLoading(false));
-        resolve(data);
-      });
-    });
-  }
-
   renderMap() {
     console.log('rendering', this.currentSegment);
-    const size = this.gameMap.settings.size;
+    const size = this.mapManager.gameMap.settings.size;
 
     if (!this.currentSegment) {
       console.warn('Cannot render, map is loading...');
@@ -211,7 +153,7 @@ export default class Map extends State {
             radiation: this.currentSegment.radiation.get(x, y),
             rainfall: this.currentSegment.rainfall.get(x, y),
             biome: this.currentSegment.biome.get(x, y),
-            sealevel: SEALEVEL,
+            sealevel: this.mapManager.gameMap.settings.sealevel,
           });
           const index = (x + y * size) * 4;
           imageData.data[index + 0] = r;
@@ -250,88 +192,8 @@ export default class Map extends State {
   }
 
   clearMap() {
-    this.gameMap.store = {
-      world: null,
-      region: null,
-      sector: null,
-    };
+    this.mapManager.reset();
     this.fetchMap();
-  }
-
-  /**
-   * Regenerates the current level and all above it
-   */
-  fetchMap() {
-    
-    this.gameMap.settings.seed = this.mapState.seed;
-    this.redrawGrid = this.gameMap.settings.size !== this.mapState.size;
-    this.gameMap.settings.size = this.mapState.size;
-
-    if (!this.mapState.currentRegion) {
-      // regen world
-
-      if (this.gameMap.store.world) {
-        console.log('getting world map from cache');
-        this.currentSegment = this.gameMap.store.world;
-        this.renderMap();
-        console.log('MAP:', this.gameMap);
-      } else {
-        this.gameMap.store.world = null;
-        this.generateMap('world')
-          .then(((data: MapSegmentData) => {
-            console.log('generate world map', data);
-            this.gameMap.store.world = data;
-            this.currentSegment = data;
-            this.renderMap();
-            console.log('MAP:', this.gameMap);
-          }));
-      }
-    } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
-      // regen world and region
-      const index = this.mapState.currentRegion.x + '.' + this.mapState.currentRegion.y;
-      if (this.gameMap.store.region && this.gameMap.store.region[index]) {
-        console.log('getting region map from cache');
-        this.currentSegment = this.gameMap.store.region[index];
-        this.renderMap();
-        console.log('MAP:', this.gameMap);
-      } else {
-        if (!this.gameMap.store.region) {
-          this.gameMap.store.region = {};
-        }
-        this.generateMap('region')
-          .then(((data: MapSegmentData) => {
-            console.log('generate region map')
-            this.gameMap.store.region[index] = data;
-            this.currentSegment = data;
-            this.renderMap();
-            console.log('MAP:', this.gameMap);
-          }));
-      }
-    } else if (this.mapState.currentSector) {
-      // regen world, sector, and sector
-      const index = this.mapState.currentRegion.x + '.' +
-                    this.mapState.currentRegion.y + '-' +
-                    this.mapState.currentSector.x + '.' +
-                    this.mapState.currentSector.y;
-      if (this.gameMap.store.sector && this.gameMap.store.sector[index]) {
-        console.log('getting sector map from cache');
-        this.currentSegment = this.gameMap.store.sector[index];
-        this.renderMap();
-        console.log('MAP:', this.gameMap);
-      } else {
-        if (!this.gameMap.store.sector) {
-          this.gameMap.store.sector = {};
-        }
-        this.generateMap('sector')
-          .then(((data: MapSegmentData) => {
-            console.log('generate sector map')
-            this.gameMap.store.sector[index] = data;
-            this.currentSegment = data;
-            this.renderMap();
-            console.log('MAP:', this.gameMap);
-          }));
-      }
-    }
   }
 
   setupKeyboard() {
@@ -380,7 +242,7 @@ export default class Map extends State {
     }
   }
 
-  async create() {
+  create() {
     this.setupKeyboard();
 
     const ui = this.game.add.group();
