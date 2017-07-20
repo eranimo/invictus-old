@@ -19,6 +19,10 @@ canvas {
   cursor: default !important;
 }
 
+table {
+  border-spacing: 10px 5px;
+}
+
 
 
 .top-ui {
@@ -71,10 +75,6 @@ $bg-color: #202B33;
     font-size: 1.4rem;
     margin-bottom: 1rem;
   }
-
-  table {
-    border-spacing: 10px 5px;
-  }
 }
 
 .loading-ui {
@@ -84,8 +84,8 @@ $bg-color: #202B33;
 
 .help-ui {
   @extend .modal-ui;
-  width: 300px;
-  height: 200px;
+  width: auto;
+  height: auto;
 }
 
 .mr-1 {
