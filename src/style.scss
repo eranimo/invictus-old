@@ -88,6 +88,33 @@ $bg-color: #202B33;
   height: auto;
 }
 
+.compass-ui.pt-button-group {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  margin-bottom: 1rem;
+  margin-right: 1rem;
+
+  button.pt-button {
+    width: 30px;
+    margin-right: auto !important;
+    margin: 0 auto !important;
+
+    &:after {
+      content: none !important;
+      height: 0 !important;
+    }
+
+    &:focus {
+      outline-offset: 0;
+    }
+
+    &.pt-disabled {
+      cursor: unset !important;
+    }
+  }
+}
+
 .mr-1 {
   margin-right: 1rem;
 }

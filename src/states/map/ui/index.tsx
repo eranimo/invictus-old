@@ -34,6 +34,7 @@ import Navbar from './components/Navbar';
 import CursorDetails from './components/CursorDetails';
 import Loading from './components/Loading';
 import KeyboardHelp from './components/KeyboardHelp';
+import Compass from './components/Compass';
 
 
 const logger = createLogger({
@@ -56,6 +57,7 @@ class App extends React.Component {
           <CursorDetails {...this.props} />
           <Loading />
           <KeyboardHelp />
+          <Compass />
         </div>
       </Provider>
     )
