@@ -19,9 +19,11 @@ import {
 
   MOVE_CURSOR,
   SET_VIEW,
+  SET_MAP_SIZE,
+  SET_MAP_SEED,
 } from './map/ui/redux';
 import { UIState } from './map/ui/redux';
-import { takeLatest } from 'redux-saga/effects';
+import { takeLatest, select } from 'redux-saga/effects';
 import { BIOMES } from 'mapgen/biomes';
 import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
@@ -58,6 +60,7 @@ export default class Map extends State {
     this.regionScale = 10;
 
     // this.world.scale.set(1000 / 900);
+    this.mapState = store.getState();
 
     this.mapManager = new MapManager({
       onGenerate: (segment: MapSegmentData) => {
@@ -67,7 +70,6 @@ export default class Map extends State {
       }
     });
 
-    this.mapState = store.getState();
     store.subscribe(() => {
       this.mapState = store.getState();
     });
@@ -88,10 +90,18 @@ export default class Map extends State {
           console.log('render map saga');
           self.renderMap();
         }),
+
+        takeLatest([
+          SET_MAP_SIZE,
+          SET_MAP_SEED,
+        ], function *update() {
+          const { mapSettings } = yield select();
+          this.gameMap.settings = mapSettings;
+        }),
       ];
     });
 
-    this.regionSize = this.mapState.size / this.regionScale;
+    this.regionSize = this.mapState.mapSettings.size / this.regionScale;
 
     renderUI({
       save: () => console.log('save map'),
@@ -123,8 +133,8 @@ export default class Map extends State {
 
   get hoverPointInfo() {
     const { x, y } = this.hoverPoint;
-    const cx: number = Math.round((x / VIEW_SIZE) * this.mapState.size);
-    const cy: number = Math.round((y / VIEW_SIZE) * this.mapState.size);
+    const cx: number = Math.round((x / VIEW_SIZE) * this.mapState.mapSettings.size);
+    const cy: number = Math.round((y / VIEW_SIZE) * this.mapState.mapSettings.size);
 
     return {
       cx, cy,
@@ -248,7 +258,10 @@ export default class Map extends State {
     const ui = this.game.add.group();
     this.game.camera.bounds = null;
 
-    this.mapBitmapData = this.game.add.bitmapData(this.mapState.size, this.mapState.size);
+    this.mapBitmapData = this.game.add.bitmapData(
+      this.mapState.mapSettings.size,
+      this.mapState.mapSettings.size
+    );
 
     this.fetchMap();
 

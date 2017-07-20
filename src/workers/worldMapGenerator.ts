@@ -113,8 +113,10 @@ function makeBiomes(heightmap, radiationMap, rainfallMap, options) {
 }
 
 self.addEventListener('message', event => {
+  console.group('WorldMapGenerator worker');
   const data: any = {};
   console.log(`Made a new ${event.data.heightmap.level} heightmap`);
+  console.log('Map generator options', event.data);
   const heightmap = makeHeightmap(event.data);
   const radiation = makeRadiation(heightmap, event.data);
   const rainfall = makeRainfall(event.data);
@@ -138,5 +140,6 @@ self.addEventListener('message', event => {
     },
   };
   data.id = Math.round(Math.random() * 1000);
+  console.groupEnd();
   (self as any).postMessage(data);
 });

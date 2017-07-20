@@ -35,7 +35,7 @@ export interface GameMap {
   }
 }
 
-const blankGameMap: GameMap = {
+export const blankGameMap: GameMap = {
   settings: {
     sealevel: 150,
     size: 250,
@@ -61,6 +61,12 @@ export default class MapManager {
   constructor(options: IMapManagerOptions) {
     this.onGenerate = options.onGenerate;
     this.gameMap = blankGameMap;
+
+    this.gameMap.store = {
+      world: null,
+      region: null,
+      sector: null,
+    };
 
     let self = this;
   }
@@ -93,16 +99,6 @@ export default class MapManager {
         resolve(data);
       });
     });
-  }
-
-  // creates a new map with new settings
-  create(mapSettings: MapSettings) {
-    this.gameMap.settings = mapSettings;
-    this.gameMap.store = {
-      world: null,
-      region: null,
-      sector: null,
-    };
   }
 
   // resets current map, uses the same settings

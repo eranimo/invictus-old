@@ -1,3 +1,6 @@
+import { MapSettings, blankGameMap } from '../mapManager';
+
+
 export const SET_VIEW = 'SET_VIEW';
 export const setView = (view: number) => ({ type: SET_VIEW, payload: view });
 
@@ -28,8 +31,7 @@ export const toggleKeyboardHelp = () => ({ type: TOGGLE_KEYBOARD_HELP });
 export interface UIState {
   view: number,
   showGrid: boolean,
-  size: number,
-  seed: number,
+  mapSettings: MapSettings,
   currentRegion: Phaser.Point | null,
   currentSector: Phaser.Point | null,
   cursor: Phaser.Point | null,
@@ -40,8 +42,7 @@ export interface UIState {
 const initialState: UIState = {
   view: 4,
   showGrid: false,
-  size: 500,
-  seed: Math.random(),
+  mapSettings: blankGameMap.settings,
   currentRegion: null,
   currentSector: null,
   cursor: null,
