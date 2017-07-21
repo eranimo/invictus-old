@@ -354,9 +354,13 @@ export default class Map extends State {
     );
 
     if (this.hoverPoint && this.currentSegment) {
-      if (this.hoverPointInfo.height) {
+      const { cx, cy } = this.hoverPointInfo;
+      if (
+        cx >= 0 && cy >= 0 && cx < width && cy < height &&
+        this.hoverPointInfo.height
+      ) {
         this.hoverText.setText(`
-          Location: (${this.hoverPointInfo.cx}, ${this.hoverPointInfo.cy})
+          Location: (${cx}, ${cy})
 Height: ${this.hoverPointInfo.height}
 Altitude: ${this.hoverPointInfo.height - SEALEVEL}
 Type: ${this.hoverPointInfo.height < SEALEVEL ? 'Water' : 'Land'}
