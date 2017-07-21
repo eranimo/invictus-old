@@ -96,7 +96,7 @@ export default class Map extends State {
           SET_MAP_SEED,
         ], function *update() {
           const { mapSettings } = yield select();
-          this.gameMap.settings = mapSettings;
+          self.mapManager.gameMap.settings = mapSettings;
         }),
       ];
     });

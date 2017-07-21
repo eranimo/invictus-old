@@ -65,12 +65,18 @@ export const reducer = (state = initialState, action) => {
     case SET_MAP_SIZE:
       return {
         ...state,
-        size: action.payload,
+        mapSettings: {
+          ...state.mapSettings,
+          size: action.payload,
+        }
       };
     case SET_MAP_SEED:
       return {
         ...state,
-        seed: action.payload,
+        mapSettings: {
+          ...state.mapSettings,
+          seed: action.payload,
+        }
       };
     case SELECT_REGION:
       return {

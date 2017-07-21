@@ -38,7 +38,7 @@ export interface GameMap {
 export const blankGameMap: GameMap = {
   settings: {
     sealevel: 150,
-    size: 250,
+    size: 500,
     seed: Math.random(),
   },
   store: {

@@ -32,8 +32,10 @@ interface TopUIProps {
   cursor?: Phaser.Point,
 
   // map options
-  seed?: number,
-  size?: number,
+  mapSettings?: {
+    seed: number,
+    size: number,
+  },
 
   setView?: (view: number) => any,
   toggleGrid?: () => any,
@@ -82,7 +84,7 @@ class Navbar extends React.Component<TopUIProps, any> {
                 id="map-size"
                 dir="auto"
                 onChange={e => this.props.setMapSize(parseInt(e.target.value, 10))}
-                value={this.props.size}
+                value={this.props.mapSettings.size}
               >
                 <option value={100}>Small (100)</option>
                 <option value={250}>Medium (250)</option>
@@ -105,7 +107,7 @@ class Navbar extends React.Component<TopUIProps, any> {
                 type="number"
                 placeholder="number"
                 dir="auto"
-                value={this.props.seed.toString()}
+                value={this.props.mapSettings.seed.toString()}
                 onChange={e => this.props.setMapSeed(parseInt(e.target.value, 10))}
                 rightElement={
                   <Button
