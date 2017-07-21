@@ -51,7 +51,6 @@ export default class Map extends State {
   currentSegment: MapSegmentData;
   mapState: UIState;
 
-  redrawGrid: boolean;
   hoverPoint: Point;
   hoverText: Phaser.Text;
 
@@ -80,14 +79,12 @@ export default class Map extends State {
         takeLatest([
           MOVE_CURSOR,
         ], function *moveCursorSaga() {
-          console.log('move cursor saga');
           self.updateCursor();
         }),
 
         takeLatest([
           SET_VIEW,
         ], function *updateMap() {
-          console.log('render map saga');
           self.renderMap();
         }),
 
@@ -146,7 +143,11 @@ export default class Map extends State {
   }
 
   renderMap() {
-    console.log('rendering', this.currentSegment);
+    console.groupCollapsed('Map Rendering');
+    const timer = 'map rendering';
+    console.time(timer);
+
+    console.log('current segment', this.currentSegment);
     const size = this.mapManager.gameMap.settings.size;
 
     if (!this.currentSegment) {
@@ -183,9 +184,8 @@ export default class Map extends State {
       // this.mapSprite.height = size;
       console.log('mapBitmapData', this.mapBitmapData);
 
-      if (this.redrawGrid) {
-        console.log('redraw grid!');
-      }
+      console.timeEnd(timer);
+      console.groupEnd();
       resolve();
     });
   }
@@ -365,8 +365,8 @@ Height: ${this.hoverPointInfo.height}
 Altitude: ${this.hoverPointInfo.height - SEALEVEL}
 Type: ${this.hoverPointInfo.height < SEALEVEL ? 'Water' : 'Land'}
 Biome: ${BIOMES[this.hoverPointInfo.biome].title}
-Radiation: ${this.hoverPointInfo.radiation}
-Rainfall: ${this.hoverPointInfo.rainfall}
+Radiation: ${this.hoverPointInfo.radiation.toLocaleString()}
+Rainfall: ${this.hoverPointInfo.rainfall.toLocaleString()}
         `.trim());
       } else {
         this.hoverText.setText('');
