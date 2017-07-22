@@ -20,7 +20,7 @@ module.exports = {
     ],
     vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader', '@blueprintjs/core']
   },
-  devtool: 'cheap-source-map',
+  devtool: 'inline-source-map',
   output: {
     pathinfo: true,
     path: path.resolve(__dirname, 'dist'),
