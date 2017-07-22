@@ -35,7 +35,7 @@ export const LOAD_MAP = 'LOAD_MAP';
 export const loadMap = (name: string) => ({ type: LOAD_MAP, payload: name });
 
 export const REGEN = 'REGEN';
-export const regen = () => ({ type: REGEN });
+export const regen = (shouldReload?: boolean) => ({ type: REGEN, payload: shouldReload });
 
 export const FETCH_SAVED_MAPS = 'FETCH_SAVED_MAPS';
 export const fetchSavedMaps = () => ({ type: FETCH_SAVED_MAPS });

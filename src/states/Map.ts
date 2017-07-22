@@ -104,9 +104,13 @@ export default class Map extends State {
           self.mapManager.gameMap.settings = mapSettings;
         }),
 
-        takeLatest(REGEN, function *regen() {
+        takeLatest(REGEN, function *regen(action: any) {
           console.log('regen map');
-          self.clearMap();
+          if (!action.payload) {
+            self.fetchMap();
+          } else {
+            self.clearMap();
+          }
         }),
 
         takeLatest(FETCH_SAVED_MAPS, function *loadMaps() {
