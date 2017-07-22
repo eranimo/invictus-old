@@ -1,4 +1,4 @@
-import { MapSettings, blankGameMap } from '../mapManager';
+import { MapSettings, blankGameMap, GameMap } from '../mapManager';
 
 
 export const SET_VIEW = 'SET_VIEW';
@@ -44,7 +44,7 @@ export const SAVED_MAPS_LOADED = 'SAVED_MAPS_LOADED';
 export const savedMapsLoaded = (mapNames: string[]) => ({ type: SAVED_MAPS_LOADED, payload: mapNames });
 
 export const MAP_LOADED = 'MAP_LOADED';
-export const mapLoaded = (mapSettings: MapSettings) => ({ type: MAP_LOADED, payload: mapSettings });
+export const mapLoaded = (map: GameMap) => ({ type: MAP_LOADED, payload: map });
 
 export interface UIState {
   view: number,
@@ -57,6 +57,7 @@ export interface UIState {
   showKeyboardHelp: boolean,
   loadingMaps: boolean,
   savedMaps: string[],
+  loadedMapName?: string,
 };
 
 const initialState: UIState = {
@@ -70,6 +71,7 @@ const initialState: UIState = {
   showKeyboardHelp: false,
   loadingMaps: true,
   savedMaps: [],
+  loadedMapName: null
 };
 
 export const reducer = (state = initialState, action) => {
@@ -139,7 +141,8 @@ export const reducer = (state = initialState, action) => {
     case MAP_LOADED:
       return {
         ...state,
-        mapSettings: action.payload,
+        mapSettings: action.payload.settings,
+        loadedMapName: action.payload.mapName,
       };
     default:
       return state;

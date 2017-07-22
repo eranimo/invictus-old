@@ -39,6 +39,7 @@ export enum MapLevels {
 
 export interface GameMap {
   settings: MapSettings,
+  mapName?: string,
   store: {
     world: MapSegmentData | null,
     region: GameMapStore | null,
@@ -82,7 +83,6 @@ function serialize(value: any): any {
 function deserialize(value: any) {
   if (_.isObject(value)) {
     if (value.__type) {
-      console.log(JSON.parse(value.data));
       return ndarrayJSON.parse(value.data);
     }
     return _.mapValues(value, deserialize);
@@ -123,6 +123,7 @@ export default class MapManager {
     if (!name) {
       name = `Map #${numSaves + 1}`;
     }
+    this.gameMap.mapName = name;
     localForage.setItem(
       MAP_SAVES_PREFIX + name,
       JSON.stringify(serialize(this.gameMap)),

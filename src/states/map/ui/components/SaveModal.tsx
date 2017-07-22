@@ -8,15 +8,24 @@ interface LoadModalProps {
   isOpen: boolean,
   onClose: () => void
   saveMap?: (name: string) => void,
+  loadedMapName?: string,
 }
 
-@connect(null, { saveMap })
+@connect(state => ({
+  loadedMapName: state.loadedMapName
+}), { saveMap })
 class SaveModal extends React.Component<LoadModalProps, { name: string }> {
   _nameField: HTMLInputElement;
 
   state = {
     name: '',
   };
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.loadedMapName !== this.props.loadedMapName) {
+      this.setState({ name: nextProps.loadedMapName });
+    }
+  }
 
   render() {
     return (
@@ -41,6 +50,7 @@ class SaveModal extends React.Component<LoadModalProps, { name: string }> {
                 className="pt-input pt-intent-primary pt-fill"
                 placeholder="Enter a map name"
                 type="text"
+                value={this.state.name}
                 autoFocus
                 onChange={evt => this.setState({ name: evt.target.value })}
               />
@@ -56,7 +66,9 @@ class SaveModal extends React.Component<LoadModalProps, { name: string }> {
               }}
               disabled={this.state.name.length === 0}
             >
-              Save
+              {this.props.loadedMapName === this.state.name
+                ? 'Overwrite'
+                : 'Save'}
             </Button>
           </div>
         </div>

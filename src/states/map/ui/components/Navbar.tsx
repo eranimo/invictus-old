@@ -34,6 +34,7 @@ interface NavbarProps {
   currentRegion?: Phaser.Point,
   currentSector?: Phaser.Point,
   cursor?: Phaser.Point,
+  loadedMapName?: string,
 
   // map options
   mapSettings?: {
@@ -178,6 +179,9 @@ class Navbar extends React.Component<NavbarProps, NavbarState> {
             </div>
           </div>
           <div className="pt-navbar-group pt-align-right">
+            {this.props.loadedMapName && <span className="mr-1">
+              <b>Map Name: </b> {this.props.loadedMapName}
+            </span>}
             <Button
               iconName="help"
               onClick={this.props.toggleKeyboardHelp}

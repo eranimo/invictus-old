@@ -31,6 +31,13 @@ class LoadModal extends React.Component<LoadModalProps, LoadModalState> {
     this.props.fetchSavedMaps();
   }
 
+  handleClose = () => {
+    this.setState({
+      selected: null,
+    });
+    this.props.onClose();
+  }
+
   renderModalBody() {
     if (this.props.loadingMaps) {
       return <div>Loading maps...</div>;
@@ -73,7 +80,7 @@ class LoadModal extends React.Component<LoadModalProps, LoadModalState> {
                   onClick={() => {
                     const mapName = this.props.savedMaps[this.state.selected];
                     this.props.loadMap(mapName);
-                    this.props.onClose();
+                    this.handleClose();
                   }}
                 >
                   Load
@@ -91,7 +98,7 @@ class LoadModal extends React.Component<LoadModalProps, LoadModalState> {
         className="pt-dark"
         iconName="download"
         isOpen={this.props.isOpen}
-        onClose={this.props.onClose}
+        onClose={this.handleClose}
         title="Load Map"
       >
         <div className="pt-dialog-body">

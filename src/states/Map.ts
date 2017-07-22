@@ -127,7 +127,7 @@ export default class Map extends State {
           self.mapManager.load(action.payload)
             .then(() => {
               self.fetchMap();
-              store.dispatch(mapLoaded(self.mapManager.gameMap.settings));
+              store.dispatch(mapLoaded(self.mapManager.gameMap));
             });
         }),
       ];
