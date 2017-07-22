@@ -177,6 +177,7 @@ export default class MapManager {
 
   // resets current map, uses the same settings
   reset() {
+    delete this.gameMap.mapName;
     this.gameMap.store = {
       world: null,
       region: null,
