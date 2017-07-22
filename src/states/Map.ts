@@ -19,6 +19,7 @@ import {
   savedMapsLoaded,
   fetchSavedMaps,
   mapLoaded,
+  regen,
 
   MOVE_CURSOR,
   SET_VIEW,
@@ -275,7 +276,18 @@ export default class Map extends State {
     const coordinate = new Phaser.Point(cx, cy);
 
     if (this.mapState.cursor && this.mapState.cursor.equals(coordinate)) {
-      store.dispatch(moveCursor(null));
+      if (this.mapState.currentSector) {
+        store.dispatch(moveCursor(null));
+      } else if (this.mapState.currentRegion) {
+        store.dispatch(selectRegion(this.mapState.currentRegion));
+        store.dispatch(selectSector(coordinate));
+        store.dispatch(moveCursor(null));
+        store.dispatch(regen());
+      } else {
+        store.dispatch(selectRegion(coordinate));
+        store.dispatch(moveCursor(null));
+        store.dispatch(regen());
+      }
     } else {
       store.dispatch(moveCursor(coordinate));
     }
