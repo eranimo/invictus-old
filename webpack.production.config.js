@@ -16,7 +16,7 @@ module.exports = {
     app: [
       path.resolve(__dirname, 'src/main.js')
     ],
-    vendor: ['pixi', 'p2', 'phaser', 'webfontloader']
+    vendor: ['pixi', 'p2', 'phaser']
 
   },
   output: {

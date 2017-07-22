@@ -18,7 +18,7 @@ module.exports = {
     app: [
       path.resolve(__dirname, 'src/main.ts')
     ],
-    vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader', '@blueprintjs/core']
+    vendor: ['pixi', 'p2', 'phaser-ce', '@blueprintjs/core']
   },
   devtool: 'inline-source-map',
   output: {
