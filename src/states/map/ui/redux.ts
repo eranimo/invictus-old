@@ -28,6 +28,24 @@ export const setLoading = (isLoading: boolean) => ({ type: SET_LOADING, payload:
 export const TOGGLE_KEYBOARD_HELP = 'TOGGLE_KEYBOARD_HELP';
 export const toggleKeyboardHelp = () => ({ type: TOGGLE_KEYBOARD_HELP });
 
+export const SAVE_MAP = 'SAVE_MAP';
+export const saveMap = (name: string) => ({ type: SAVE_MAP, payload: name });
+
+export const LOAD_MAP = 'LOAD_MAP';
+export const loadMap = (name: string) => ({ type: LOAD_MAP, payload: name });
+
+export const REGEN = 'REGEN';
+export const regen = () => ({ type: REGEN });
+
+export const FETCH_SAVED_MAPS = 'FETCH_SAVED_MAPS';
+export const fetchSavedMaps = () => ({ type: FETCH_SAVED_MAPS });
+
+export const SAVED_MAPS_LOADED = 'SAVED_MAPS_LOADED';
+export const savedMapsLoaded = (mapNames: string[]) => ({ type: SAVED_MAPS_LOADED, payload: mapNames });
+
+export const MAP_LOADED = 'MAP_LOADED';
+export const mapLoaded = (mapSettings: MapSettings) => ({ type: MAP_LOADED, payload: mapSettings });
+
 export interface UIState {
   view: number,
   showGrid: boolean,
@@ -37,6 +55,8 @@ export interface UIState {
   cursor: Phaser.Point | null,
   isLoading: boolean,
   showKeyboardHelp: boolean,
+  loadingMaps: boolean,
+  savedMaps: string[],
 };
 
 const initialState: UIState = {
@@ -48,6 +68,8 @@ const initialState: UIState = {
   cursor: null,
   isLoading: false,
   showKeyboardHelp: false,
+  loadingMaps: true,
+  savedMaps: [],
 };
 
 export const reducer = (state = initialState, action) => {
@@ -102,6 +124,22 @@ export const reducer = (state = initialState, action) => {
       return {
         ...state,
         showKeyboardHelp: !state.showKeyboardHelp,
+      };
+    case FETCH_SAVED_MAPS:
+      return {
+        ...state,
+        loadingMaps: true,
+      };
+    case SAVED_MAPS_LOADED:
+      return {
+        ...state,
+        loadingMaps: false,
+        savedMaps: action.payload,
+      };
+    case MAP_LOADED:
+      return {
+        ...state,
+        mapSettings: action.payload,
       };
     default:
       return state;

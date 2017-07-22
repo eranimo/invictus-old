@@ -8,6 +8,7 @@ import {
   setMapSeed,
   setMapSize,
   toggleKeyboardHelp,
+  regen,
 } from 'states/map/ui/redux';
 import {
   Popover,
@@ -19,10 +20,13 @@ import {
   PopoverInteractionKind,
   InputGroup,
   Tooltip,
+  Dialog,
 } from '@blueprintjs/core';
+import LoadModal from './LoadModal';
+import SaveModal from './SaveModal';
 
 
-interface TopUIProps {
+interface NavbarProps {
   view?: number
 
   // view options
@@ -40,16 +44,24 @@ interface TopUIProps {
   setView?: (view: number) => any,
   toggleGrid?: () => any,
   regen?: () => void,
-  save?: () => void
   setMapSeed?: (seed: number) => void,
   setMapSize?: (size: number) => void,
   toggleKeyboardHelp?: () => any,
 }
 
+interface NavbarState {
+  isLoadOpen: boolean,
+  isSaveOpen: boolean,
+}
+
 @connect(state => state, {
-  setView, toggleGrid, setMapSeed, setMapSize, toggleKeyboardHelp,
+  setView, toggleGrid, setMapSeed, setMapSize, toggleKeyboardHelp, regen
 })
-class Navbar extends React.Component<TopUIProps, any> {
+class Navbar extends React.Component<NavbarProps, NavbarState> {
+  state = {
+    isLoadOpen: false,
+    isSaveOpen: false,
+  }
 
   renderViewMenu() {
     return (
@@ -173,14 +185,32 @@ class Navbar extends React.Component<TopUIProps, any> {
             />
             <div className="pt-button-group">
               <Button
+                iconName="download"
+                onClick={() => {
+                  this.setState({ isLoadOpen: true });
+                }}
+              >
+              Load Map
+              </Button>
+              <Button
                 iconName="floppy-disk"
-                onClick={this.props.save}
+                onClick={() => {
+                  this.setState({ isSaveOpen: true });
+                }}
               >
                 Save Map
               </Button>
             </div>
           </div>
         </nav>
+        <LoadModal
+          isOpen={this.state.isLoadOpen}
+          onClose={() => this.setState({ isLoadOpen: false })}
+        />
+        <SaveModal
+          isOpen={this.state.isSaveOpen}
+          onClose={() => this.setState({ isSaveOpen: false })}
+        />
       </div>
     );
   }

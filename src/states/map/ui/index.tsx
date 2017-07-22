@@ -53,8 +53,8 @@ class App extends React.Component {
     return (
       <Provider store={store}>
         <div>
-          <Navbar {...this.props} />
-          <CursorDetails {...this.props} />
+          <Navbar />
+          <CursorDetails />
           <Loading />
           <KeyboardHelp />
           <Compass />
@@ -63,9 +63,9 @@ class App extends React.Component {
     )
   }
 }
-export default function render(controls: any) {
+export default function render() {
   ReactDOM.render(
-    (<App {...controls} /> as any),
+    <App />,
     document.getElementById('topUI')
   );
 }

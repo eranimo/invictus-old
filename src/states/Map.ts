@@ -16,14 +16,21 @@ import {
   moveCursor,
   setLoading,
   toggleKeyboardHelp,
+  savedMapsLoaded,
+  fetchSavedMaps,
+  mapLoaded,
 
   MOVE_CURSOR,
   SET_VIEW,
   SET_MAP_SIZE,
   SET_MAP_SEED,
+  FETCH_SAVED_MAPS,
+  SAVE_MAP,
+  LOAD_MAP,
+  REGEN,
 } from './map/ui/redux';
 import { UIState } from './map/ui/redux';
-import { takeLatest, select } from 'redux-saga/effects';
+import { takeLatest, select, put } from 'redux-saga/effects';
 import { BIOMES } from 'mapgen/biomes';
 import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
@@ -68,6 +75,7 @@ export default class Map extends State {
         this.renderMap();
       }
     });
+    (<any>window).manager = this.mapManager;
 
     store.subscribe(() => {
       this.mapState = store.getState();
@@ -95,22 +103,39 @@ export default class Map extends State {
           const { mapSettings } = yield select();
           self.mapManager.gameMap.settings = mapSettings;
         }),
+
+        takeLatest(REGEN, function *regen() {
+          console.log('regen map');
+          self.clearMap();
+        }),
+
+        takeLatest(FETCH_SAVED_MAPS, function *loadMaps() {
+          console.log('fetch saved maps');
+          self.mapManager.listSaves().then((saves: string[]) => {
+            store.dispatch(savedMapsLoaded(saves));
+          })
+        }),
+
+        takeLatest(SAVE_MAP, function *saveMap(action: any) {
+          self.mapManager.save(action.payload)
+            .then(() => {
+              store.dispatch(fetchSavedMaps());
+            });
+        }),
+
+        takeLatest(LOAD_MAP, function *saveMap(action: any) {
+          self.mapManager.load(action.payload)
+            .then(() => {
+              self.fetchMap();
+              store.dispatch(mapLoaded(self.mapManager.gameMap.settings));
+            });
+        }),
       ];
     });
 
     this.regionSize = this.mapState.mapSettings.size / this.regionScale;
 
-    renderUI({
-      save: () => console.log('save map'),
-      regen: (shouldClear) => {
-        console.log('regen map');
-        if (shouldClear) {
-          this.clearMap();
-        } else {
-          this.fetchMap();
-        }
-      },
-    });
+    renderUI();
 
   }
 
@@ -377,18 +402,22 @@ Rainfall: ${this.hoverPointInfo.rainfall.toLocaleString()}
     if (this.mapState.cursor) {
       this.mapCursorSprite.visible = true;
     }
+    if (document.activeElement === document.body) {
+      this.game.input.enabled = true;
+      // camera move
+      if (this.cursors.left.isDown) {
+        this.game.camera.x -= 8;
+      } else if (this.cursors.right.isDown) {
+        this.game.camera.x += 8;
+      }
 
-    // camera move
-    if (this.cursors.left.isDown) {
-      this.game.camera.x -= 8;
-    } else if (this.cursors.right.isDown) {
-      this.game.camera.x += 8;
-    }
-
-    if (this.cursors.up.isDown) {
-      this.game.camera.y -= 8;
-    } else if (this.cursors.down.isDown) {
-      this.game.camera.y += 8;
+      if (this.cursors.up.isDown) {
+        this.game.camera.y -= 8;
+      } else if (this.cursors.down.isDown) {
+        this.game.camera.y += 8;
+      }
+    } else {
+      this.game.input.enabled = false;
     }
   }
 }

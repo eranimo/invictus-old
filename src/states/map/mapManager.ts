@@ -1,5 +1,9 @@
 import ndarray from 'ndarray';
 import * as MapGenerator from 'worker-loader!workers/worldMapGenerator';
+import localForage from 'localforage';
+import isnd from 'isndarray';
+import ndarrayJSON from 'ndarray-json';
+import _ from 'lodash';
 
 
 export interface MapSegmentData {
@@ -10,6 +14,13 @@ export interface MapSegmentData {
   level: any,
   stats: any,
 };
+
+const ndarrayKeys = [
+  'heightmap',
+  'radiation',
+  'rainfall',
+  'biome',
+]
 
 export interface GameMapStore {
   [coord: string]: MapSegmentData | null
@@ -53,6 +64,33 @@ interface IMapManagerOptions {
   onGenerate: (segment: MapSegmentData) => void
 }
 
+const MAP_SAVES_PREFIX = 'denariusMaps-';
+
+function serialize(value: any): any {
+  if (_.isObject(value)) {
+    if (isnd(value)) {
+      return {
+        __type: 'ndarray',
+        data: ndarrayJSON.stringify(value)
+      };
+    }
+    return _.mapValues(value, serialize);
+  }
+  return value;
+}
+
+function deserialize(value: any) {
+  if (_.isObject(value)) {
+    if (value.__type) {
+      console.log(JSON.parse(value.data));
+      return ndarrayJSON.parse(value.data);
+    }
+    return _.mapValues(value, deserialize);
+  }
+  return value;
+}
+
+
 // Generates, saves and loads game world maps
 export default class MapManager {
   gameMap: GameMap;
@@ -69,6 +107,41 @@ export default class MapManager {
     };
 
     let self = this;
+  }
+
+  async load(name: string) {
+    const rawData = <string>await localForage.getItem(
+      MAP_SAVES_PREFIX + name,
+    );
+    const jsonData = JSON.parse(rawData);
+    this.gameMap = deserialize(jsonData);
+    console.log('loaded game map', this.gameMap);
+  }
+
+  async save(name?: string) {
+    const numSaves = (await this.listSaves()).length;
+    if (!name) {
+      name = `Map #${numSaves + 1}`;
+    }
+    localForage.setItem(
+      MAP_SAVES_PREFIX + name,
+      JSON.stringify(serialize(this.gameMap)),
+    );
+  }
+
+  async deleteSave(name: string): Promise<void> {
+    const saves = await this.listSaves();
+    if (name in saves) {
+      return await localForage.removeItem(MAP_SAVES_PREFIX + name);
+    }
+    throw new Error(`Save '${name}' does not exist`);
+  }
+
+  async listSaves(): Promise<string[]> {
+    const keys = await localForage.keys();
+    return keys
+      .filter(key => key.startsWith(MAP_SAVES_PREFIX))
+      .map(key => key.replace(MAP_SAVES_PREFIX, ''));
   }
 
   // generates a map segment
