@@ -153,7 +153,7 @@ export default class Map extends State {
       this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentRegion);
     } else if (this.mapState.currentSector) {
       // regen world, sector, and sector
-      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentSector);
+      this.mapManager.fetchMapSegment(MapLevels.sector, this.mapState.currentRegion, this.mapState.currentSector);
     }
   }
 
