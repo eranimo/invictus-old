@@ -6,19 +6,19 @@ export const levels = {
     zoomLevel: 1,
   },
   region: {
-    numIterations: 25,
+    numIterations: 10,
     persistence: 0.6,
     initFrequency: 2,
     zoomLevel: 10,
   },
   sector: {
-    numIterations: 50,
+    numIterations: 15,
     persistence: 0.6,
     initFrequency: 2,
     zoomLevel: 100,
   },
   local: {
-    numIterations: 60,
+    numIterations: 20,
     persistence: 0.6,
     initFrequency: 2,
     zoomLevel: 1000,
