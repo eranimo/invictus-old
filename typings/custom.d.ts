@@ -33,10 +33,3 @@ declare module "alea" {
   const content: any;
   export = content;
 }
-
-declare module "webfontloader" {
-  const content: {
-    load: (stuff: Object) => any,
-  };
-  export = content;
-}

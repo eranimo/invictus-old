@@ -18,7 +18,7 @@ module.exports = {
     app: [
       path.resolve(__dirname, 'src/main.ts')
     ],
-    vendor: ['pixi', 'p2', 'phaser-ce', 'webfontloader', '@blueprintjs/core']
+    vendor: ['pixi', 'p2', 'phaser-ce', '@blueprintjs/core']
   },
   devtool: 'inline-source-map',
   output: {
@@ -42,8 +42,34 @@ module.exports = {
       { test: /pixi\.js/, use: ['expose-loader?PIXI'] },
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },
-      { test: /\.scss$/, use: [ 'style-loader', 'css-loader', 'sass-loader' ] },
-      { test: /\.css$/, use: [ 'style-loader', 'css-loader' ] },
+      { test: /\.scss$/, use: [
+        {
+          loader: 'style-loader',
+        },
+        {
+          loader: 'css-loader',
+          options: {
+            sourceMap: true
+          }
+        },
+        {
+          loader: 'sass-loader',
+          options: {
+            sourceMap: true
+          }
+        }
+      ] },
+      { test: /\.css$/, use: [
+        {
+          loader: 'style-loader'
+        },
+        {
+          loader: 'css-loader',
+          options: {
+            sourceMap: true
+          }
+        }
+      ] },
       {
         test: /\.(woff|woff2)$/,
         use: {
