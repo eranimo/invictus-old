@@ -3,6 +3,7 @@ var webpack = require('webpack')
 
 // Phaser webpack config
 var phaserModule = path.join(__dirname, '/node_modules/phaser-ce/')
+var dtype = path.join(__dirname, '/node_modules/dtype/')
 var phaser = path.join(phaserModule, 'build/custom/phaser-split.js')
 var pixi = path.join(phaserModule, 'build/custom/pixi.js')
 var p2 = path.join(phaserModule, 'build/custom/p2.js')
@@ -106,6 +107,7 @@ module.exports = {
     alias: {
       'phaser-ce': phaser,
       'pixi': pixi,
+      'dtype': dtype,
       'p2': p2
     }
   },
