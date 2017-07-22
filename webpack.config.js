@@ -21,7 +21,7 @@ module.exports = {
     ],
     vendor: ['pixi', 'p2', 'phaser-ce', '@blueprintjs/core']
   },
-  devtool: 'inline-source-map',
+  devtool: 'eval',
   output: {
     pathinfo: true,
     path: path.resolve(__dirname, 'dist'),
