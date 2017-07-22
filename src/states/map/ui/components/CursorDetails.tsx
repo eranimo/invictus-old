@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { connect } from 'react-redux';
 import {
-  selectRegion, selectSector, moveCursor
+  selectRegion, selectSector, moveCursor, regen
 } from 'states/map/ui/redux';
 import { Button } from '@blueprintjs/core';
 
@@ -19,7 +19,7 @@ interface InfoUIProps {
 
 @connect(
   state => state,
-  { selectRegion, selectSector, moveCursor }
+  { selectRegion, selectSector, moveCursor, regen }
 )
 class CursorDetails extends React.Component<InfoUIProps, {}> {
   render() {
