@@ -402,7 +402,13 @@ Rainfall: ${this.hoverPointInfo.rainfall.toLocaleString()}
     if (this.mapState.cursor) {
       this.mapCursorSprite.visible = true;
     }
-    if (document.activeElement === document.body) {
+    if (
+      (document.activeElement.nodeName === 'INPUT' &&
+      document.activeElement.attributes['type'].value === 'text') ||
+      document.activeElement.nodeName === 'TEXTAREA'
+    ) {
+      this.game.input.enabled = false;
+    } else {
       this.game.input.enabled = true;
       // camera move
       if (this.cursors.left.isDown) {
@@ -416,8 +422,6 @@ Rainfall: ${this.hoverPointInfo.rainfall.toLocaleString()}
       } else if (this.cursors.down.isDown) {
         this.game.camera.y += 8;
       }
-    } else {
-      this.game.input.enabled = false;
     }
   }
 }
