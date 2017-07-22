@@ -35,7 +35,6 @@ import CursorDetails from './components/CursorDetails';
 import Loading from './components/Loading';
 import KeyboardHelp from './components/KeyboardHelp';
 import Compass from './components/Compass';
-import { AppContainer } from 'react-hot-loader'
 
 
 const logger = createLogger({
@@ -66,9 +65,7 @@ class App extends React.Component {
 }
 export default function render() {
   ReactDOM.render(
-    <AppContainer>
-      <App />
-    </AppContainer>,
+    <App />,
     document.getElementById('topUI')
   );
 }
