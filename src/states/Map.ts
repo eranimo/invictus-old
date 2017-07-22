@@ -128,10 +128,12 @@ export default class Map extends State {
         }),
 
         takeLatest(LOAD_MAP, function *saveMap(action: any) {
+          store.dispatch(setLoading(true));
           self.mapManager.load(action.payload)
             .then(() => {
               self.fetchMap();
               store.dispatch(mapLoaded(self.mapManager.gameMap));
+              store.dispatch(setLoading(false));
             });
         }),
       ];

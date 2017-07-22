@@ -120,10 +120,21 @@ self.addEventListener('message', event => {
   const data: any = {};
   console.log(`Made a new ${event.data.heightmap.level} heightmap`);
   console.log('Map generator options', event.data);
+  console.time('heightmap part');
   const heightmap = makeHeightmap(event.data);
+  console.timeEnd('heightmap part');
+
+  console.time('radiation part');
   const radiation = makeRadiation(heightmap, event.data);
+  console.timeEnd('radiation part');
+
+  console.time('rainfall part');
   const rainfall = makeRainfall(event.data);
+  console.timeEnd('rainfall part');
+
+  console.time('biomes part');
   const biomes = makeBiomes(heightmap, radiation, rainfall, event.data);
+  console.timeEnd('biomes part');
   data.heightmap = heightmap.data;
   data.radiation = radiation.data;
   data.rainfall = rainfall.data;

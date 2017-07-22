@@ -14,7 +14,7 @@ class LoadingUI extends React.Component<{ isLoading?: boolean }, null> {
     }
     return (
       <div className="loading-ui">
-        <div className="mb-1">Generating Map</div>
+        <div className="mb-1">Loading Map</div>
         <Spinner />
       </div>
     );
