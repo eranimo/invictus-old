@@ -13,6 +13,7 @@ interface LoadModalProps {
   loadingMaps?: boolean,
   savedMaps?: string[],
   fetchSavedMaps?: () => void,
+  loadedMapName?: string,
 }
 interface LoadModalState {
   selected?: number,
@@ -20,6 +21,7 @@ interface LoadModalState {
 
 @connect(state => ({
   loadingMaps: state.loadingMaps,
+  loadedMapName: state.loadedMapName,
   savedMaps: state.savedMaps,
 }), { loadMap, fetchSavedMaps })
 class LoadModal extends React.Component<LoadModalProps, LoadModalState> {
@@ -64,7 +66,7 @@ class LoadModal extends React.Component<LoadModalProps, LoadModalState> {
                   <span className="pt-tree-node-caret-none pt-icon-standard"></span>
                   <span className="pt-tree-node-icon pt-icon-standard pt-icon-document"></span>
                 <span className="pt-tree-node-label">
-                  {name}
+                  {name} {this.props.loadedMapName === name && <i className="pt-text-muted">(current map)</i>}
                 </span>
                 </div>
               </li>
