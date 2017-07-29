@@ -64,8 +64,12 @@ class App extends React.Component {
   }
 }
 export default function render() {
-  ReactDOM.render(
-    <App />,
-    document.getElementById('topUI')
-  );
+  const root = document.getElementById('topUI');
+  ReactDOM.render(<App />, root);
+
+  return () => {
+    while (root.firstChild) {
+      root.removeChild(root.firstChild);
+    }
+  }
 }

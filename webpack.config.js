@@ -39,7 +39,12 @@ module.exports = {
   ],
   module: {
     rules: [
-      { test: /\.tsx?$/, use: ['ts-loader'], include: path.join(__dirname, 'src') },
+      {
+        test: /\.tsx?$/,
+        use: ['ts-loader'],
+        exclude: /node_modules/,
+        include: path.join(__dirname, 'src')
+      },
       { test: /pixi\.js/, use: ['expose-loader?PIXI'] },
       { test: /phaser-split\.js$/, use: ['expose-loader?Phaser'] },
       { test: /p2\.js/, use: ['expose-loader?p2'] },

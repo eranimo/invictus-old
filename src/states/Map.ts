@@ -62,6 +62,8 @@ export default class Map extends State {
   hoverPoint: Point;
   hoverText: Phaser.Text;
 
+  clearUI: Function;
+
   init() {
     this.stage.backgroundColor = '#2d2d2d';
     this.regionScale = 10;
@@ -81,6 +83,7 @@ export default class Map extends State {
     store.subscribe(() => {
       this.mapState = store.getState();
     });
+    this.regionSize = this.mapState.mapSettings.size / this.regionScale;
 
     const self = this;
     runSaga(function *mainSaga() {
@@ -139,11 +142,11 @@ export default class Map extends State {
         }),
       ];
     });
+    this.clearUI = renderUI();
+  }
 
-    this.regionSize = this.mapState.mapSettings.size / this.regionScale;
-
-    renderUI();
-
+  shutdown() {
+    this.clearUI();
   }
 
   fetchMap() {
@@ -250,7 +253,7 @@ export default class Map extends State {
     });
     keys.map.onUp.add(() => {
       console.log('Go to Game');
-      this.state.start('Game');
+      this.state.start('Game', true, false, { foo: 'bar' });
     });
     keys.grid.onUp.add(() => {
       console.log('hide grid');

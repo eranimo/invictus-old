@@ -7,13 +7,11 @@ export default class Game extends Phaser.State {
   layer2: Phaser.TilemapLayer;
   cursors: Phaser.CursorKeys;
 
-  init () {}
-  preload () {}
+  init (localMapSegment) {
+    console.log(localMapSegment);
+  }
 
   create () {
-
-    // this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
-    // this.game.scale.setUserScale(3, 3);
     this.game.renderer.renderSession.roundPixels = true;
     Phaser.Canvas.setImageRenderingCrisp(this.game.canvas);
 

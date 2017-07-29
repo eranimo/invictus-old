@@ -11,7 +11,7 @@ import { BIOMES } from '../mapgen/biomes';
 
 function makeHeightmap(options) {
   const { seed, size, level, position } = options.heightmap;
-  const heightmap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  const heightmap = ndarray(new Float32Array(size * size), [size, size]);
 
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
