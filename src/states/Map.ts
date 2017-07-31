@@ -12,7 +12,6 @@ import {
   setMapSize,
   toggleGrid,
   selectRegion,
-  selectSector,
   moveCursor,
   setLoading,
   toggleKeyboardHelp,
@@ -38,11 +37,11 @@ import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
 const VIEW_SIZE = 1000;
 const SEALEVEL = 150;
+const CELL_SIZE_PERCENT = 20;
 
 export default class Map extends State {
   views: Array<View>;
   regionScale: number;
-  regionSize: number;
   
   mapBitmapData: Phaser.BitmapData; // map image bitmap
 
@@ -66,7 +65,6 @@ export default class Map extends State {
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
-    this.regionScale = 10;
 
     // this.world.scale.set(1000 / 900);
     this.mapState = store.getState();
@@ -83,7 +81,6 @@ export default class Map extends State {
     store.subscribe(() => {
       this.mapState = store.getState();
     });
-    this.regionSize = this.mapState.mapSettings.size / this.regionScale;
 
     const self = this;
     runSaga(function *mainSaga() {
@@ -154,12 +151,9 @@ export default class Map extends State {
     if (!this.mapState.currentRegion) {
       // regen world
       this.mapManager.fetchMapSegment(MapLevels.world);
-    } else if (this.mapState.currentRegion && !this.mapState.currentSector) {
+    } else if (this.mapState.currentRegion) {
       // regen world and region
       this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentRegion);
-    } else if (this.mapState.currentSector) {
-      // regen world, sector, and sector
-      this.mapManager.fetchMapSegment(MapLevels.sector, this.mapState.currentRegion, this.mapState.currentSector);
     }
   }
 
@@ -281,13 +275,10 @@ export default class Map extends State {
     const coordinate = new Phaser.Point(cx, cy);
 
     if (this.mapState.cursor && this.mapState.cursor.equals(coordinate)) {
-      if (this.mapState.currentSector) {
-        store.dispatch(moveCursor(null));
-      } else if (this.mapState.currentRegion) {
-        store.dispatch(selectRegion(this.mapState.currentRegion));
-        store.dispatch(selectSector(coordinate));
-        store.dispatch(moveCursor(null));
-        store.dispatch(regen());
+      if (this.mapState.currentRegion) {
+        // store.dispatch(selectRegion(this.mapState.currentRegion));
+        // store.dispatch(moveCursor(null));
+        // store.dispatch(regen());
       } else {
         store.dispatch(selectRegion(coordinate));
         store.dispatch(moveCursor(null));
@@ -320,8 +311,8 @@ export default class Map extends State {
     ui.add(this.mapSprite);
 
     // world map grid
-    this.cellWidth = Math.round((this.mapSprite.width) / this.regionScale);
-    this.cellHeight = Math.round((this.mapSprite.height) / this.regionScale);
+    this.cellWidth = Math.round((this.mapSprite.width) / CELL_SIZE_PERCENT);
+    this.cellHeight = Math.round((this.mapSprite.height) / CELL_SIZE_PERCENT);
     const gridMap = this.game.add.bitmapData(this.mapSprite.width, this.mapSprite.height);
     for (let x = 0; x <= this.mapSprite.width; x++) {
       gridMap.line(Math.round(x * this.cellWidth), 0, Math.round(x * this.cellWidth), this.mapSprite.height, '#000');
@@ -336,8 +327,8 @@ export default class Map extends State {
     // this.mapGrid.pixelPerfectClick = true;
     this.mapGrid.events.onInputDown.add((sprite, pointer) => {
       let { x, y, width, height } = sprite.getBounds();
-      let row = Math.floor((pointer.x - x) * this.regionScale / width);
-      let column = Math.floor((pointer.y - y) * this.regionScale / height);
+      let row = Math.floor((pointer.x - x) * CELL_SIZE_PERCENT / width);
+      let column = Math.floor((pointer.y - y) * CELL_SIZE_PERCENT / height);
       this.onClickGrid(row, column);
     });
 

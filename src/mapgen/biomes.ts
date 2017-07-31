@@ -147,7 +147,7 @@ export const BIOMES: Array<Biome> = [
     type: 'water',
     color: [14, 63, 80],
     test: (rad, rain, height, sealevel) => {
-      return rad < CORAL_REEF_TEMP_CUTOFF && height <= sealevel && height >= sealevel - 10;
+      return rad >= -20 && rad < CORAL_REEF_TEMP_CUTOFF && height <= sealevel && height >= sealevel - 10;
     }
   },
   {

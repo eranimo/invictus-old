@@ -23,7 +23,6 @@ import {
   setMapSize,
   toggleGrid,
   selectRegion,
-  selectSector,
   moveCursor,
   setLoading,
   toggleKeyboardHelp,

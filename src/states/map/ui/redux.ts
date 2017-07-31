@@ -16,9 +16,6 @@ export const toggleGrid = () => ({ type: TOGGLE_GRID });
 export const SELECT_REGION = 'SELECT_REGION';
 export const selectRegion = (coordinate: Phaser.Point) => ({ type: SELECT_REGION, payload: coordinate });
 
-export const SELECT_SECTOR = 'SELECT_SECTOR';
-export const selectSector = (coordinate: Phaser.Point) => ({ type: SELECT_SECTOR, payload: coordinate });
-
 export const MOVE_CURSOR = 'MOVE_CURSOR';
 export const moveCursor = (coordinate: Phaser.Point) => ({ type: MOVE_CURSOR, payload: coordinate });
 
@@ -51,7 +48,6 @@ export interface UIState {
   showGrid: boolean,
   mapSettings: MapSettings,
   currentRegion: Phaser.Point | null,
-  currentSector: Phaser.Point | null,
   cursor: Phaser.Point | null,
   isLoading: boolean,
   showKeyboardHelp: boolean,
@@ -65,7 +61,6 @@ const initialState: UIState = {
   showGrid: false,
   mapSettings: blankGameMap.settings,
   currentRegion: null,
-  currentSector: null,
   cursor: null,
   isLoading: false,
   showKeyboardHelp: false,
@@ -106,11 +101,6 @@ export const reducer = (state = initialState, action) => {
       return {
         ...state,
         currentRegion: action.payload,
-      };
-    case SELECT_SECTOR:
-      return {
-        ...state,
-        currentSector: action.payload,
       };
     case MOVE_CURSOR:
       return {

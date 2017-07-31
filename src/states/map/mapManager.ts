@@ -50,7 +50,7 @@ export interface GameMap {
 export const blankGameMap: GameMap = {
   settings: {
     sealevel: 150,
-    size: 500,
+    size: 250,
     seed: Math.random(),
   },
   store: {
@@ -225,28 +225,6 @@ export default class MapManager {
             .then(((data: MapSegmentData) => {
               console.log('generate region map')
               this.gameMap.store.region[index] = data;
-              this.onGenerate(data);
-            }));
-        }
-      }
-      break;
-      case MapLevels.sector: {
-        // regen world, sector, and sector
-        const index = region.x + '.' + region.y + '-' + sector.x + '.' + sector.y;
-        if (this.gameMap.store.sector && this.gameMap.store.sector[index]) {
-          console.log('getting sector map from cache');
-          this.onGenerate(this.gameMap.store.sector[index]);
-        } else {
-          if (!this.gameMap.store.sector) {
-            this.gameMap.store.sector = {};
-          }
-          this.generateMapSegment('sector', {
-            x: (region.x * size * 10) + (sector.x * size),
-            y: (region.y * size * 10) + (sector.y * size),
-          })
-            .then(((data: MapSegmentData) => {
-              console.log('generate sector map')
-              this.gameMap.store.sector[index] = data;
               this.onGenerate(data);
             }));
         }
