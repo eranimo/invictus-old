@@ -271,21 +271,17 @@ export default class Map extends State {
   }
 
   onClickGrid(cx: number, cy: number) {
-    console.log(`Clicked on region ${cx}, ${cy}`);
     const coordinate = new Phaser.Point(cx, cy);
 
-    if (this.mapState.cursor && this.mapState.cursor.equals(coordinate)) {
-      if (this.mapState.currentRegion) {
-        // store.dispatch(selectRegion(this.mapState.currentRegion));
-        // store.dispatch(moveCursor(null));
-        // store.dispatch(regen());
-      } else {
+    if (!this.mapState.currentRegion) {
+      console.log(`Clicked on region ${cx}, ${cy}`);
+      if (this.mapState.cursor && this.mapState.cursor.equals(coordinate)) {
         store.dispatch(selectRegion(coordinate));
         store.dispatch(moveCursor(null));
         store.dispatch(regen());
+      } else {
+        store.dispatch(moveCursor(coordinate));
       }
-    } else {
-      store.dispatch(moveCursor(coordinate));
     }
   }
 
