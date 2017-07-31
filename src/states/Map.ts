@@ -37,7 +37,7 @@ import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
 const VIEW_SIZE = 1000;
 const SEALEVEL = 150;
-const CELL_SIZE_PERCENT = 20;
+const CELL_SIZE_PERCENT = 30;
 
 export default class Map extends State {
   views: Array<View>;

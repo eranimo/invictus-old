@@ -6,9 +6,9 @@ export const levels = {
     zoomLevel: 1,
   },
   region: {
-    numIterations: 20,
-    persistence: 0.61,
+    numIterations: 30,
+    persistence: 0.6,
     initFrequency: 2,
-    zoomLevel: 20,
+    zoomLevel: 30,
   }
 };
