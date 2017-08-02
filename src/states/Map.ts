@@ -243,7 +243,7 @@ export default class Map extends State {
 
   clearMap() {
     this.mapManager.reset();
-    this.fetchMap();
+    this.create();
   }
 
   setupKeyboard() {
