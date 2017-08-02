@@ -35,13 +35,12 @@ import { BIOMES } from 'mapgen/biomes';
 import MapManager, { MapSegmentData, MapLevels } from './map/mapManager';
 
 
-const VIEW_SIZE = 1000;
 const SEALEVEL = 150;
 const CELL_SIZE_PERCENT = 30;
+const VIEW_SIZE = CELL_SIZE_PERCENT * 35;
 
 export default class Map extends State {
   views: Array<View>;
-  regionScale: number;
   
   mapBitmapData: Phaser.BitmapData; // map image bitmap
 
@@ -62,27 +61,39 @@ export default class Map extends State {
   hoverText: Phaser.Text;
 
   clearUI: Function;
+  loaded: boolean;
 
   init() {
     this.stage.backgroundColor = '#2d2d2d';
-
+    this.loaded = false;
     // this.world.scale.set(1000 / 900);
-    this.mapState = store.getState();
 
-    this.mapManager = new MapManager({
-      onGenerate: (segment: MapSegmentData) => {
-        this.currentSegment = segment;
-        store.dispatch(setLoading(false));
-        this.renderMap();
-      }
-    });
+    this.mapManager = new MapManager();
     (<any>window).manager = this.mapManager;
+  }
 
+  create() {
+    this.mapManager
+      .init()
+      .then(([region, point]: [MapSegmentData, Phaser.Point]) => {
+        this.currentSegment = region;
+        this.mapState = store.getState();
+        store.dispatch(selectRegion(point));
+        this.setupMapUI();
+        this.loaded = true;
+        console.log('create', region, point, this);
+        this.setup();
+        this.renderMap();
+      });
+  }
+
+
+  setupMapUI() {
+    const self = this;
     store.subscribe(() => {
       this.mapState = store.getState();
     });
 
-    const self = this;
     runSaga(function *mainSaga() {
       yield [
         takeLatest([
@@ -130,12 +141,7 @@ export default class Map extends State {
 
         takeLatest(LOAD_MAP, function *saveMap(action: any) {
           store.dispatch(setLoading(true));
-          self.mapManager.load(action.payload)
-            .then(() => {
-              self.fetchMap();
-              store.dispatch(mapLoaded(self.mapManager.gameMap));
-              store.dispatch(setLoading(false));
-            });
+          self.mapManager.load(action.payload).then(self.fetchMap)
         }),
       ];
     });
@@ -146,28 +152,32 @@ export default class Map extends State {
     this.clearUI();
   }
 
-  fetchMap() {
+  async fetchMap() {
     store.dispatch(setLoading(true));
-    if (!this.mapState.currentRegion) {
-      // regen world
-      this.mapManager.fetchMapSegment(MapLevels.world);
-    } else if (this.mapState.currentRegion) {
+    try {
       // regen world and region
-      this.mapManager.fetchMapSegment(MapLevels.region, this.mapState.currentRegion);
+      this.currentSegment = await this.mapManager.generateRegion(this.mapState.currentRegion);
+    } catch (e) {
+      console.error('Error when fetching map', e);
     }
+    
+    store.dispatch(mapLoaded(this.mapManager.gameMap));
+    store.dispatch(setLoading(false));
+
+    this.renderMap();
   }
 
-  get hoverPointInfo() {
+  get hoverPointInfo(): { [key: string]: number } {
     const { x, y } = this.hoverPoint;
     const cx: number = Math.round((x / VIEW_SIZE) * this.mapState.mapSettings.size);
     const cy: number = Math.round((y / VIEW_SIZE) * this.mapState.mapSettings.size);
-
+    const seg = this.currentSegment;
     return {
       cx, cy,
-      height: this.currentSegment.heightmap.get(cx, cy),
-      radiation: this.currentSegment.radiation.get(cx, cy),
-      rainfall: this.currentSegment.rainfall.get(cx, cy),
-      biome: this.currentSegment.biome.get(cx, cy),
+      height: seg.heightmap ? seg.heightmap.get(cx, cy) : 0,
+      radiation: seg.radiation ? seg.radiation.get(cx, cy) : 0,
+      rainfall: seg.rainfall ? seg.rainfall.get(cx, cy) : 0,
+      biome: seg.biome ? seg.biome.get(cx, cy) : 0,
     };
   }
 
@@ -183,6 +193,7 @@ export default class Map extends State {
       console.warn('Cannot render, map is loading...');
       return;
     }
+
     return new Promise((resolve) => {
       const viewFn = VIEWS[this.mapState.view].fn;
       const imageData = this.mapBitmapData.context.createImageData(size, size);
@@ -190,9 +201,9 @@ export default class Map extends State {
         for (let y = 0; y < size; y++) {
           const [r, g, b, a] = viewFn({
             height: this.currentSegment.heightmap.get(x, y),
-            radiation: this.currentSegment.radiation.get(x, y),
-            rainfall: this.currentSegment.rainfall.get(x, y),
-            biome: this.currentSegment.biome.get(x, y),
+            radiation: this.currentSegment.radiation ? this.currentSegment.radiation.get(x, y) : 0,
+            rainfall: this.currentSegment.rainfall ? this.currentSegment.rainfall.get(x, y) : 0,
+            biome: this.currentSegment.biome ? this.currentSegment.biome.get(x, y) : 0,
             sealevel: this.mapManager.gameMap.settings.sealevel,
           });
           const index = (x + y * size) * 4;
@@ -285,7 +296,7 @@ export default class Map extends State {
     }
   }
 
-  create() {
+  setup() {
     this.setupKeyboard();
 
     const ui = this.game.add.group();
@@ -295,8 +306,6 @@ export default class Map extends State {
       this.mapState.mapSettings.size,
       this.mapState.mapSettings.size
     );
-
-    this.fetchMap();
 
     // world map sprite
     this.mapSprite = this.game.add.sprite(0, 0, this.mapBitmapData);
@@ -311,9 +320,21 @@ export default class Map extends State {
     this.cellHeight = Math.round((this.mapSprite.height) / CELL_SIZE_PERCENT);
     const gridMap = this.game.add.bitmapData(this.mapSprite.width, this.mapSprite.height);
     for (let x = 0; x <= this.mapSprite.width; x++) {
-      gridMap.line(Math.round(x * this.cellWidth), 0, Math.round(x * this.cellWidth), this.mapSprite.height, '#000');
+      gridMap.line(
+        Math.round(x * this.cellWidth),
+        0,
+        Math.round(x * this.cellWidth),
+        this.mapSprite.height,
+        '#000'
+      );
       for (let y = 0; y <= this.mapSprite.height; y++) {
-        gridMap.line(0, Math.round(y * this.cellHeight), this.mapSprite.width, Math.round(y * this.cellHeight), '#000');
+        gridMap.line(
+          0,
+          Math.round(y * this.cellHeight),
+          this.mapSprite.width,
+          Math.round(y * this.cellHeight),
+          '#000'
+        );
       }
     }
     this.mapGrid = this.game.add.sprite(0, 0, gridMap);
@@ -375,6 +396,9 @@ export default class Map extends State {
   }
 
   update() {
+    if (!this.loaded) {
+      return;
+    }
     // this.game.debug.spriteInfo(this.mapSprite, 50, 50);
     const gridAlpha = this.mapState.showGrid ? 1 : 0;
     this.mapGrid.alpha = gridAlpha;

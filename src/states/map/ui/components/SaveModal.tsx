@@ -64,7 +64,7 @@ class SaveModal extends React.Component<LoadModalProps, { name: string }> {
                 this.props.saveMap(this.state.name);
                 this.props.onClose();
               }}
-              disabled={this.state.name.length === 0}
+              disabled={this.state.name && this.state.name.length === 0}
             >
               {this.props.loadedMapName === this.state.name
                 ? 'Overwrite'

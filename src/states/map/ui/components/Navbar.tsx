@@ -100,8 +100,8 @@ class Navbar extends React.Component<NavbarProps, NavbarState> {
                 value={this.props.mapSettings.size}
               >
                 <option value={100}>Small (100)</option>
-                <option value={250}>Medium (250)</option>
-                <option value={500}>Large (500)</option>
+                <option value={300}>Medium (300)</option>
+                <option value={600}>Large (600)</option>
               </select>
             </div>
           </div>

@@ -1,18 +1,31 @@
 import ndarray from 'ndarray';
 import * as MapGenerator from 'worker-loader!workers/worldMapGenerator';
+import * as HeightGen from 'worker-loader!workers/heightGen';
+import * as RiverGen from 'worker-loader!workers/riverGen';
 import localForage from 'localforage';
 import isnd from 'isndarray';
 import ndarrayJSON from 'ndarray-json';
 import _ from 'lodash';
 
 
+async function runWorker(worker: any, data: any) {
+  const context = new worker();
+  return new Promise((resolve, reject) => {
+    context.postMessage(data);
+    context.addEventListener('message', result => {
+      resolve(result.data);
+    });
+  });
+}
+
+
 export interface MapSegmentData {
-  heightmap: ndarray,
-  radiation: ndarray,
-  rainfall: ndarray,
-  biome: ndarray,
-  level: any,
-  stats: any,
+  heightmap?: ndarray,
+  radiation?: ndarray,
+  rainfall?: ndarray,
+  biome?: ndarray,
+  level?: any,
+  stats?: any,
 };
 
 const ndarrayKeys = [
@@ -30,6 +43,7 @@ export interface MapSettings {
   sealevel: number,
   size: number,
   seed: number,
+  regionScale: number,
 }
 export enum MapLevels {
   world,
@@ -41,28 +55,27 @@ export interface GameMap {
   settings: MapSettings,
   mapName?: string,
   store: {
-    world: MapSegmentData | null,
-    region: GameMapStore | null,
-    sector: GameMapStore | null,
-  }
+    world?: MapSegmentData,
+    regions?: {
+      [coord: string]: MapSegmentData
+    }
+  },
 }
 
 export const blankGameMap: GameMap = {
   settings: {
     sealevel: 150,
-    size: 250,
+    size: 300,
     seed: Math.random(),
+    regionScale: 30,
   },
   store: {
-    world: null,
-    region: null,
-    sector: null,
+    world: {},
+    regions: {},
   },
 };
 
 interface IMapManagerOptions {
-  // called when a map segment was generated
-  onGenerate: (segment: MapSegmentData) => void
 }
 
 const MAP_SAVES_PREFIX = 'denariusMaps-';
@@ -94,19 +107,9 @@ function deserialize(value: any) {
 // Generates, saves and loads game world maps
 export default class MapManager {
   gameMap: GameMap;
-  onGenerate: (segment: MapSegmentData) => void;
 
-  constructor(options: IMapManagerOptions) {
-    this.onGenerate = options.onGenerate;
-    this.gameMap = blankGameMap;
-
-    this.gameMap.store = {
-      world: null,
-      region: null,
-      sector: null,
-    };
-
-    let self = this;
+  constructor() {
+    this.gameMap = Object.assign({}, blankGameMap);
   }
 
   async load(name: string) {
@@ -145,91 +148,153 @@ export default class MapManager {
       .map(key => key.replace(MAP_SAVES_PREFIX, ''));
   }
 
-  // generates a map segment
-  async generateMapSegment(
-    level: string,
-    position: { x: number, y: number }
-  ): Promise<MapSegmentData> {
-    const { size, sealevel } = this.gameMap.settings;
-    return new Promise<MapSegmentData>((resolve: any) => {
-      const mapGenerator = new MapGenerator();
-      mapGenerator.postMessage({
-        heightmap: {
-          ...this.gameMap.settings,
-          level,
-          position,
-        },
-      });
-      console.log('Map gen', level, position);
-      mapGenerator.addEventListener('message', event => {
-        const data: MapSegmentData = Object.create(null);
-        data.level = level;
-        data.stats = event.data.stats;
-        data.heightmap = ndarray(event.data.heightmap, [size, size]);
-        data.radiation = ndarray(event.data.radiation, [size, size]);
-        data.rainfall = ndarray(event.data.rainfall, [size, size]);
-        data.biome = ndarray(event.data.biome, [size, size]);
-        Object.freeze(data);
-        resolve(data);
-      });
-    });
-  }
-
   // resets current map, uses the same settings
   reset() {
     delete this.gameMap.mapName;
-    this.gameMap.store = {
-      world: null,
-      region: null,
-      sector: null,
-    };
+    this.gameMap.store = Object.assign({}, blankGameMap.store);
+  }
+
+  async makeWorldHeightmap(): Promise<ndarray> {
+    // step 1
+    const { size } = this.gameMap.settings;
+    const data: any = await runWorker(HeightGen, {
+      ...this.gameMap.settings,
+      level: 'world',
+      position: { x: 0, y: 0 }
+    });
+    return ndarray(data, [size, size]);
+  }
+
+  async makeRegionHeightmap(x: number, y: number): Promise<ndarray> {
+    const { size } = this.gameMap.settings;
+    const data: any = await runWorker(HeightGen, {
+      ...this.gameMap.settings,
+      level: 'region',
+      position: { x, y },
+    });
+    return ndarray(data, [size, size]);
+  }
+
+  isValidRegion(x: number, y: number): boolean {
+    const size = this.gameMap.settings.regionScale;
+    return x >= 0 && y >= 0 && x < size && y < size;
   }
   
-  // Generates a map segment
-  fetchMapSegment(
-    level: MapLevels,
-    region?: { x: number, y: number },
-    sector?: { x: number, y: number }
-  ){
-    const size = this.gameMap.settings.size;
-    switch (level) {
-      case MapLevels.world:
-        // regen world
-        if (this.gameMap.store.world) {
-          console.log('getting world map from cache');
-          this.onGenerate(this.gameMap.store.world);
-        } else {
-          this.gameMap.store.world = null;
-          this.generateMapSegment('world', { x: 0, y: 0 })
-            .then(((data: MapSegmentData) => {
-              console.log('generate world map', data);
-              this.gameMap.store.world = data;
-              this.onGenerate(data);
-            }));
-        }
-      break;
-      case MapLevels.region: {
-        // regen world and region
-        const index = region.x + '.' + region.y;
-        if (this.gameMap.store.region && this.gameMap.store.region[index]) {
-          console.log('getting region map from cache');
-          this.onGenerate(this.gameMap.store.region[index]);
-        } else {
-          if (!this.gameMap.store.region) {
-            this.gameMap.store.region = {};
+  getRegionKey(x: number, y: number) {
+    return `${x}-${y}`;
+  }
+
+  async init(): Promise<[MapSegmentData, Phaser.Point]> {
+    this.reset();
+    const startRegion = await this.stepZero();
+    return [await this.generateRegion(startRegion), startRegion];
+  }
+
+  // generate one region to completion
+  async generateRegion(region: Phaser.Point): Promise<MapSegmentData> {
+    return await this.stepOne(region);
+  }
+
+  // make a world map and return a suitable start region
+  // returns a suitable start region
+  async stepZero(): Promise<Phaser.Point>  {
+    const { size, regionScale, sealevel } = this.gameMap.settings;
+    // generate world map
+    const heightmap = await this.makeWorldHeightmap();
+    this.gameMap.store.world.heightmap = heightmap;
+
+    // determine starting region to generate
+    // this region is the first active region
+    let possibleRegions = [];
+    const regionSize = size / regionScale;
+    for (let x = 0; x < regionScale; x++) {
+      for (let y = 0; y < regionScale; y++) {
+        let waterSum = 0;
+        let landSum = 0;
+        const maxX = (x * regionSize) + regionSize;
+        const maxY = (y * regionSize) + regionSize;
+        // loop over each cell in the region
+        for (let i = x * regionSize; i < maxX; i++) {
+          for (let j = y * regionSize; j < maxY; j++) {
+            const height = heightmap.get(
+              Math.round(i),
+              Math.round(j),
+            );
+            if (height < sealevel) {
+              waterSum += 1;
+            } else {
+              landSum += 1;
+            }
           }
-          this.generateMapSegment('region', {
-            x: region.x * size,
-            y: region.y * size,
-          })
-            .then(((data: MapSegmentData) => {
-              console.log('generate region map')
-              this.gameMap.store.region[index] = data;
-              this.onGenerate(data);
-            }));
+        }
+        const percentLand = landSum / (regionSize * regionSize);
+        // between 50% and 80% land
+        if (percentLand >= 0.5 && percentLand < 0.8) {
+          possibleRegions.push([x, y]);
         }
       }
-      break;
     }
+    const r = possibleRegions[_.random(0, possibleRegions.length - 1)];
+    return new Phaser.Point(r[0], r[1]);
+  }
+
+  // ensure this region and all neighboring regions have heightmaps
+  async stepOne({ x, y }: { x: number, y: number}) {
+    console.time('Step 1');
+    // generate heightmap for this region if one doesn't exist
+    const key = this.getRegionKey(x, y);
+    if (this.gameMap.store.regions[key] && this.gameMap.store.regions[key].heightmap) {
+      return; // already exists
+    }
+    this.gameMap.store.regions[key] = {
+      heightmap: await this.makeRegionHeightmap(x, y),
+    };
+
+    // generate heightmaps for all 8-neighboring cells if they don't exist
+    const neighbors = [
+      [x - 1, y],
+      [x, y - 1],
+      [x - 1, y - 1],
+      [x - 1, y + 1],
+
+      [x + 1, y],
+      [x, y + 1],
+      [x + 1, y - 1],
+      [x + 1, y + 1],
+    ];
+
+    // generate heightmaps for all 8-neighboring cells if they don't exist
+    // each will be generated in parallel workers
+    const result = await Promise.all(
+      neighbors
+        .map(item => {
+          const isValid = this.isValidRegion(item[0], item[1]);
+          const itemKey = this.getRegionKey(item[0], item[1]);
+          const hasHeightmap = (
+            this.gameMap.store.regions[itemKey] &&
+            this.gameMap.store.regions[itemKey].heightmap
+          );
+          
+          // return heightmap worker promise
+          if (isValid && !hasHeightmap) {
+            return this.makeRegionHeightmap(item[0], item[1]);
+          }
+          // heightmap already exists
+          return Promise.resolve(null);
+        })
+    );
+
+    for (let i = 0; i < neighbors.length; i++) {
+      const item = neighbors[i];
+      const itemKey = this.getRegionKey(item[0], item[1]);
+      if (result[i]) {
+        this.gameMap.store.regions[itemKey] = {
+          heightmap: result[i],
+        };
+      }
+    }
+    console.timeEnd('Step 1');
+    console.log('step 1 result', this.gameMap.store.regions[key]);
+    return this.gameMap.store.regions[key];
   }
 }

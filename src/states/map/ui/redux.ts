@@ -57,7 +57,7 @@ export interface UIState {
 };
 
 const initialState: UIState = {
-  view: 4,
+  view: 0,
   showGrid: false,
   mapSettings: blankGameMap.settings,
   currentRegion: null,

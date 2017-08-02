@@ -14,14 +14,14 @@ export const SIZES: Array<MapSize> = [
   },
   {
     name: 'Medium',
-    size: 250,
-    mapSpriteSize: 250,
+    size: 300,
+    mapSpriteSize: 300,
     mapScale: 4,
   },
   {
     name: 'Large',
-    size: 500,
-    mapSpriteSize: 500,
+    size: 600,
+    mapSpriteSize: 600,
     mapScale: 2,
   }
 ]
