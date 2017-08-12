@@ -3,46 +3,58 @@ This document outlines a multi-stage algorithm for generating procedural worlds 
 
 ## Outline
 
-### Step 0 (world map heights)
-This step generates a world heightmap at a higher zoom level to determine where to generate the first region
+### Step 1: Prep
+This step generates a world heightmap at a higher zoom level to determine where to generate rivers
 
-  - generate a world heightmap
-  - divide world map into a grid of region cells
-  - pick a region with 80% land (so on the cost)
+- Generate a "world map" heightmap used only to find continents and generate river sources
+- Split cells in to land and water cells
+- Decide a sealevel value
 
-### Step 1 (only height)
-Treating regions like wang tiles to make sure further steps have heightmaps in all directions
+- Create a new blank 2D array to contain local heightmap (referred to as the "regional map")
+  - Each cell has:
+    - x and y
+    - height
+    - altitude (height - sealevel)
+    - latitude (distance from equator)
+    - biome
+    - moisture
+    - temperature
+    - a distance to coast number
+    - a land or ocean enum
+    - references to all 8 neighbors
 
-  - generate heightmap for this region if one doesn't exist
-  - generate heightmaps for all 8-neighboring cells if they don't exist
+### Step 2: Rivers
+Generate rivers by transfering water from source cells downhill.
 
-### Step 2 (only rivers)
-Generates rivers by going uphill from costal cells
+- decide a number of river source cells at the coast (coast as defined by world map)
+  - generate height at all source cells in the regional map
+      drop if regional height is below sea level
+- river data structure is a tree of cell nodes
+- **river** algorithm:
+  - generate height at all neighbors
+  - maintain distance from coast of all cells
+  - if we have neighbors above sea level & above the last cell:
+    - mark *i* of the highest neighboring cells as a river (high to low)
+      where *i* is a percentage chance that increases as the distance from the coast increases
+      (this creates river tributaries)
+    - continue flow algorithm at next cells
+  - else:
+    - end the river
 
-river algorithm:
-- pick a number of random costal land cells in the region map
-- follow uphill until there are no higher neighbors or the edge of the region was reached
+### Step 3: Moisture
+- **moisture** algorithm:
+  - for all cells in river:
+    - increase moisture value of all cells within x radius
+      - where x is a distance relative to the distance to coast number
+        such that closer to the coast yields higher values
+        and farther yields lower values
 
-run river algorithm on current region, extending rivers into 8-neighbors
-run river algorithm on each 8-neighbor, extending into current region
-
-### Step 3 (moisture)
-Propagates moisture from rivers and costal cells
-
-  - for all river cells, paint all cells (in all regions) within x cells (TBD) with w amount of moisture (TBD)
-    with more moisture nearer to the river cells
-  - for all costal cells, paint a small amount of moisture in the area in the same way
-
-### Step 4 (temperature + biomes)
-  - determine temperature of cells based on:
-    2. latitude
-    1. altitude
-  - determine biomes of cells based on moisture and temperature
-
-### Step 5 (world map final)
-
-## Workers
-
-heightGen.ts - heightmap generator for world and regions
-riverGen.ts - generates rivers
-terraGen.ts - moisture, temperature, biomes
+### Step 4: Chunk-based biosphere
+- Given a camera, decide a number of subsections of the regional map called chunks.
+  - each cunk is a 10x10 2D array
+  - Decide which chunks are visible
+  - complete chunk:
+    - For each cell in the chunk:
+      - Calculate the height of all cells that don't have one
+      - Determine **temperature** based on altitude and abs(latitude)
+      - Calculate **biome** based on moisture and temperature
