@@ -1,7 +1,8 @@
 import ndarray from 'ndarray';
-import * as MapGenerator from 'worker-loader!workers/worldMapGenerator';
-import * as HeightGen from 'worker-loader!workers/heightGen';
-import * as RiverGen from 'worker-loader!workers/riverGen';
+// import * as MapGenerator from 'worker-loader!workers/worldMapGenerator';
+// import * as HeightGen from 'worker-loader!workers/heightGen';
+// import * as RiverGen from 'worker-loader!workers/riverGen';
+import MapGenerator from 'mapgen';
 import localForage from 'localforage';
 import isnd from 'isndarray';
 import ndarrayJSON from 'ndarray-json';
@@ -56,7 +57,7 @@ export interface GameMap {
   mapName?: string,
   store: {
     world?: MapSegmentData,
-    regions?: {
+    chunks?: {
       [coord: string]: MapSegmentData
     }
   },
@@ -71,7 +72,7 @@ export const blankGameMap: GameMap = {
   },
   store: {
     world: {},
-    regions: {},
+    chunks: {},
   },
 };
 
@@ -107,9 +108,11 @@ function deserialize(value: any) {
 // Generates, saves and loads game world maps
 export default class MapManager {
   gameMap: GameMap;
+  mapGen: MapGenerator;
 
   constructor() {
     this.gameMap = Object.assign({}, blankGameMap);
+    this.mapGen = new MapGenerator(this.gameMap.settings);
   }
 
   async load(name: string) {
@@ -152,6 +155,33 @@ export default class MapManager {
   reset() {
     delete this.gameMap.mapName;
     this.gameMap.store = Object.assign({}, blankGameMap.store);
+    this.mapGen.settings = this.gameMap.settings;
+  }
+
+  async initMap() {
+    console.log('init map');
+    const result: any = await this.mapGen.generate();
+    const { size } = this.gameMap.settings;
+    const converted = ndarray(result.worldHeightMap, [size, size]);
+    this.gameMap.store.world.heightmap = converted;
+    return converted;
+  }
+
+  generateChunk(chunk: Phaser.Point) {
+    console.log('generate chunk');
+    return this.mapGen.generateChunk(chunk);
+  }
+  
+  /*
+  async init(): Promise<[MapSegmentData, Phaser.Point]> {
+    this.reset();
+    const startRegion = await this.stepZero();
+    return [await this.generateRegion(startRegion), startRegion];
+  }
+
+  // generate one region to completion
+  async generateRegion(region: Phaser.Point): Promise<MapSegmentData> {
+    return await this.stepOne(region);
   }
 
   async makeWorldHeightmap(): Promise<ndarray> {
@@ -182,17 +212,6 @@ export default class MapManager {
   
   getRegionKey(x: number, y: number) {
     return `${x}-${y}`;
-  }
-
-  async init(): Promise<[MapSegmentData, Phaser.Point]> {
-    this.reset();
-    const startRegion = await this.stepZero();
-    return [await this.generateRegion(startRegion), startRegion];
-  }
-
-  // generate one region to completion
-  async generateRegion(region: Phaser.Point): Promise<MapSegmentData> {
-    return await this.stepOne(region);
   }
 
   // make a world map and return a suitable start region
@@ -297,4 +316,5 @@ export default class MapManager {
     console.log('step 1 result', this.gameMap.store.regions[key]);
     return this.gameMap.store.regions[key];
   }
+  */
 }

@@ -39,6 +39,7 @@
     "css-loader": "^0.28.4",
     "dtype": "^2.0.0",
     "gl-matrix": "^2.3.2",
+    "is-promise": "^2.1.0",
     "isndarray": "^1.0.0",
     "localforage": "^1.5.0",
     "lodash": "^4.17.4",

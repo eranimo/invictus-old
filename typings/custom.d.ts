@@ -33,3 +33,11 @@ declare module "alea" {
   const content: any;
   export = content;
 }
+
+declare module "promise-worker" {
+  class PromiseWorker {
+    constructor(worker: any)
+    postMessage(message: any)
+  }
+  export default PromiseWorker;
+}

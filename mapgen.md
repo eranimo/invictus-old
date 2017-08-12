@@ -58,3 +58,9 @@ Generate rivers by transfering water from source cells downhill.
       - Calculate the height of all cells that don't have one
       - Determine **temperature** based on altitude and abs(latitude)
       - Calculate **biome** based on moisture and temperature
+      - Calculate terrain types at each z-level:
+        - mineral deposits formed by 3D cellular automata
+          randomly placed source blocks, randomly growing outwards
+          higher chance of spreading horizontall than vertically
+          fixed amount of generations per chunk
+        - layered simplex noise to determine rock layers

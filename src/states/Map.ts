@@ -70,18 +70,19 @@ export default class Map extends State {
 
     this.mapManager = new MapManager();
     (<any>window).manager = this.mapManager;
+    this.create();
   }
 
   create() {
     this.mapManager
-      .init()
-      .then(([region, point]: [MapSegmentData, Phaser.Point]) => {
-        this.currentSegment = region;
+      .initMap()
+      .then((data: any) => {
+        console.log('init map result: ', data);
         this.mapState = store.getState();
-        store.dispatch(selectRegion(point));
+        this.currentSegment = this.mapManager.gameMap.store.world;
+        // store.dispatch(selectRegion(point));
         this.setupMapUI();
         this.loaded = true;
-        console.log('create', region, point, this);
         this.setup();
         this.renderMap();
       });
@@ -118,11 +119,10 @@ export default class Map extends State {
 
         takeLatest(REGEN, function *regen(action: any) {
           console.log('regen map');
-          if (!action.payload) {
-            self.fetchMap();
-          } else {
-            self.clearMap();
+          if (action.payload) {
+            this.mapManager.reset();
           }
+          self.create();
         }),
 
         takeLatest(FETCH_SAVED_MAPS, function *loadMaps() {
@@ -156,7 +156,7 @@ export default class Map extends State {
     store.dispatch(setLoading(true));
     try {
       // regen world and region
-      this.currentSegment = await this.mapManager.generateRegion(this.mapState.currentRegion);
+      await this.mapManager.generateChunk(this.mapState.currentRegion);
     } catch (e) {
       console.error('Error when fetching map', e);
     }
@@ -241,11 +241,6 @@ export default class Map extends State {
     }
   }
 
-  clearMap() {
-    this.mapManager.reset();
-    this.create();
-  }
-
   setupKeyboard() {
     // keyboard
     const keys = this.game.input.keyboard.addKeys({
@@ -271,7 +266,8 @@ export default class Map extends State {
     keys.refresh.onUp.add(() => {
       console.log('refresh');
       store.dispatch(setMapSeed(Math.random()));
-      this.clearMap();
+      this.mapManager.reset();
+      this.create();
     });
     keys.esc.onUp.add(() => {
       store.dispatch(moveCursor(null));
