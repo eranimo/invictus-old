@@ -200,9 +200,9 @@ async function init(settings) {
       .map(([nx, ny]) => [nx, ny, regionalHeightMap.get(nx, ny)])
       // remove neighbors off edge of map
       // remove heighbors lower than current node
-      .filter(item => item[2] && item[2] >= height && item[2] > sealevel)
+      .filter(item => item[2] && item[2] >= height)
       // sort cells by increasing height
-      .orderBy(item => item[2], ['ASC'])
+      .orderBy(item => item[2], ['DESC'])
       // decide how many branches to take
       .slice(0, numBranches)
       // create children nodes
@@ -221,10 +221,12 @@ async function init(settings) {
 
   worldRiverMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
   fill(worldRiverMap, (x, y) => 0);
+  let count = 0;
   for (let x = 0; x < regionSize; x++) {
     for (let y = 0; y < regionSize; y++) {
       const hasRiver = regionalRiverMap.get(x, y);
       if (hasRiver) {
+        count++;
         worldRiverMap.set(
           Math.floor(x / zoomLevel),
           Math.floor(y / zoomLevel),
@@ -233,6 +235,7 @@ async function init(settings) {
       }
     }
   }
+  console.log(`There are ${count} river cells`);
 
   console.groupEnd();
   return {

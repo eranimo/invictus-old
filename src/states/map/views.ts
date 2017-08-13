@@ -48,7 +48,7 @@ export const VIEWS: Array<View> = [
       if (height < sealevel) {
         return [0, 0, 0, 1];
       }
-      return [255, 255, 255, 1];
+      return [height, height, height, 1];
     }
   },
   {

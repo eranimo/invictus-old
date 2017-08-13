@@ -37,6 +37,7 @@
     "classnames": "^2.2.5",
     "colormap": "^2.2.0",
     "css-loader": "^0.28.4",
+    "datastructures-js": "^3.0.7",
     "dtype": "^2.0.0",
     "gl-matrix": "^2.4.0",
     "is-promise": "^2.1.0",
