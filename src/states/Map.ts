@@ -75,10 +75,9 @@ export default class Map extends State {
   create() {
     this.mapManager
       .initMap()
-      .then((data: any) => {
-        console.log('init map result: ', data);
+      .then(segment => {
         this.mapState = store.getState();
-        this.currentSegment = this.mapManager.gameMap.store.world;
+        this.currentSegment = segment;
         // store.dispatch(selectRegion(point));
         this.setupMapUI();
         this.loaded = true;
@@ -203,6 +202,7 @@ export default class Map extends State {
             radiation: this.currentSegment.radiation ? this.currentSegment.radiation.get(x, y) : 0,
             rainfall: this.currentSegment.rainfall ? this.currentSegment.rainfall.get(x, y) : 0,
             biome: this.currentSegment.biome ? this.currentSegment.biome.get(x, y) : 0,
+            hasRiver: this.currentSegment.rivermap && this.currentSegment.rivermap.get(x, y) === 1,
             sealevel: this.mapManager.gameMap.settings.sealevel,
           });
           const index = (x + y * size) * 4;

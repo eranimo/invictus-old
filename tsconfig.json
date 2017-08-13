@@ -26,7 +26,8 @@
       "p2": ["node_modules/phaser-ce/build/custom/p2.js"],
       "pixi": ["node_modules/phaser-ce/build/custom/pixi.js"],
       "phaser-ce": ["node_modules/phaser-ce/build/custom/phaser-split.js"]
-    }
+    },
+    "skipLibCheck": true
   },
   "exclude": [
     "node_modules"

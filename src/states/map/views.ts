@@ -15,6 +15,7 @@ interface ViewParams {
   radiation: number,
   biome: number,
   sealevel: number,
+  hasRiver: boolean,
 }
 
 export interface View {
@@ -36,6 +37,18 @@ export const VIEWS: Array<View> = [
     fn: ({ sealevel, height }) => {
       const v = coastline(height, sealevel);
       return [v, v, v, 1];
+    }
+  },
+  {
+    name: 'River Map',
+    fn: ({ sealevel, height, hasRiver }) => {
+      if (hasRiver) {
+        return [0, 0, 255, 1];
+      }
+      if (height < sealevel) {
+        return [0, 0, 0, 1];
+      }
+      return [255, 255, 255, 1];
     }
   },
   {

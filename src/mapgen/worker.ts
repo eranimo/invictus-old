@@ -11,23 +11,6 @@ import { registerPromiseWorker } from 'utils/workerUtils';
 import * as ACTIONS from './workerActions';
 
 
-function makeWorldHeightmap(size, noiseFn) {
-  const heightmap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
-
-  const levelOptions = {
-    numIterations: 5,
-    persistence: 0.6,
-    initFrequency: 2,
-  };
-
-  fill(heightmap, (x, y) => {
-    const nx = x;
-    const ny = y;
-    return zoomableNoise(noiseFn)(levelOptions)(nx / size + 0.5, ny / size + 0.5) * 255;
-  });
-  return heightmap;
-}
-
 // world heightmap used to determine where to place rivers
 let worldHeightMap: ndarray;
 // larger zoomed in version of the world heightmap
@@ -61,33 +44,31 @@ class TreeNode<T = any> {
 
   /** Add a new child node, mark this as its parent */
   addChild(child: TreeNode<T>): void {
-    this.parent = child;
+    child.parent = this;
     this.children.push(child);
   }
 
-  /** Gets the number of nodes to the root node */
-  get depth(): number {
-    let current: TreeNode<T> = this;
-    let count = 0;
-    while (current !== null) {
-      if (this.parent) {
-        count++;
-        current = this.parent;
-      } else {
-        current = null;
-      }
+  // maximum depth of tree
+  get height(): number {
+    if (this.children.length === 0) {
+      return 0;
     }
-    return count;
+    if (this.children.length === 1) {
+      return this.children[0].height + 1;
+    }
+    const heightLeft = this.children[0].height;
+    const heightRight = this.children[1].height;
+    return Math.max(heightLeft, heightRight) + 1;
   }
 }
 
 class LazyNoiseMap {
   ndarray: ndarray;
   size: number;
-  createFn: (...dim: number[]) => number;
+  private createFn: (...dim: number[]) => number;
 
   constructor(arrayType: any, size: number, createFn: (...dim: number[]) => number) {
-    this.ndarray = ndarray(new arrayType(size * size, [size, size]));
+    this.ndarray = ndarray(new arrayType(size * size), [size, size]);
     this.size = size;
     this.createFn = createFn;
   }
@@ -97,10 +78,9 @@ class LazyNoiseMap {
       return undefined;
     }
     let value = this.ndarray.get(x, y);
-    if (!value) {
+    if (value === 0) {
       value = this.createFn(x, y);
       this.ndarray.set(x, y, value);
-      return value;
     }
     return value;
   }
@@ -108,14 +88,18 @@ class LazyNoiseMap {
   set(x: number, y: number, value: number) {
     this.ndarray.set(x, y, value);
   }
+
+  get data() {
+    return this.ndarray.data;
+  }
 }
 
-const get4Neighbor = memoize((x: number, y: number) => ([
+const get4Neighbor = (x: number, y: number) => ([
     [x - 1, y],
     [x + 1, y],
     [x, y - 1],
     [x, y + 1],
-]));
+]);
 
 async function init(settings) {
   console.group('map gen worker init');
@@ -127,15 +111,18 @@ async function init(settings) {
   console.log(`Generating world of size ${regionSize}x${regionSize} (${size}x${size})`);
   const rng = new Alea(seed);
   const simplex = new SimplexNoise(rng);
-  const noiseFn = (nx, ny) => simplex.noise2D(nx, ny);
-  worldHeightMap = makeWorldHeightmap(size, noiseFn);
-  heightMin = ops.inf(worldHeightMap);
-  heightMax = ops.sup(worldHeightMap);
+  const noiseFn = zoomableNoise(simplex.noise2D.bind(simplex));
+  worldHeightMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  fill(worldHeightMap, (x, y) => {
+    return noiseFn(levels.world)(x / size + 0.5, y / size + 0.5) * 255;
+  });
 
   // generate regional height for selected costal cells
   // only generate the height when it's needed
-  regionalHeightMap = new LazyNoiseMap(Uint8ClampedArray, size, ((x, y) => {
-    return zoomableNoise(noiseFn)(levels.region)(x / size + 0.5, y / size + 0.5) * 255;
+  regionalHeightMap = new LazyNoiseMap(Uint8ClampedArray, regionSize, ((x, y) => {
+    const nx = x / zoomLevel;
+    const ny = y / zoomLevel;
+    return noiseFn(levels.region)(nx / size + 0.5, ny / size + 0.5) * 255;
   }));
 
   // determine costal cells
@@ -143,25 +130,42 @@ async function init(settings) {
   for (let x = 0; x < size; x++) {
     for (let y = 0; y < size; y++) {
       const height = worldHeightMap.get(x, y);
-      const hasOceanNeighbor = _(get4Neighbor(x, y))
-        .map(([x, y]) => worldHeightMap.get(x, y))
-        .some(height => height && height < sealevel);
+      // this cell is above sea level in the world map
+      if (height > sealevel) {
+        // get this cell's neighbors
+        const validNeighbors = _(get4Neighbor(x, y))
+          .map(([nx, ny]) => worldHeightMap.get(nx, ny))
+          .filter(nh => !!nh)
+          .value();
+        
+        if (validNeighbors.length > 0) {
+          // are any neighbors below sealevel
+          const isCostal = validNeighbors.some(nh => nh < sealevel);
 
-      if (
-        height > sealevel &&
-        hasOceanNeighbor
-      ) {
-        // at least one 4-neighbor is ocean, so we're costal
-        costalCells.push([x, y, height]);
+          if (isCostal) {
+            // at least one 4-neighbor is ocean, so we're costal
+            costalCells.push([x, y, height]);
+          }
+        }
       }
     }
   }
   console.log(`There are ${costalCells.length} costal cells`);
   console.log('costalCells', costalCells);
+  console.log('worldHeightMap', worldHeightMap);
+
+  // fill regional river map
+  regionalRiverMap = ndarray(new Uint8ClampedArray(regionSize * regionSize), [regionSize, regionSize]);
+  fill(regionalRiverMap, (x, y) => 0);
 
   const regionalCostalCells = costalCells.map((item) => {
-    item[2] = regionalHeightMap.get(item[0], item[1]);
+    const scaledX = Math.round(item[0] * zoomLevel); // Math.round(zoomLevel / 2);
+    const scaledY = Math.round(item[1] * zoomLevel); // Math.round(zoomLevel / 2);
+    item[2] = regionalHeightMap.get(scaledX, scaledY);
     if (item[2] > sealevel) {
+      item[0] = scaledX;
+      item[1] = scaledY;
+      // regionalRiverMap.set(scaledX, scaledY, 1);
       return item;
     }
     return null;
@@ -175,13 +179,9 @@ async function init(settings) {
     .slice(0, numRivers);
   
   // make river source nodes
-  const riverSourceNodes = riverSources.map(([x, y, height]) => {
+  let riverSourceNodes = riverSources.map(([x, y, height]) => {
     return new TreeNode({ x, y, height });
   });
-
-  // fill regional river map
-  regionalRiverMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
-  fill(regionalRiverMap, (x, y) => 0);
 
   
   // run river algorithm on source cells
@@ -194,32 +194,50 @@ async function init(settings) {
     const numBranches = rng() < 0.05 ? 2 : 1; 
 
     _(get4Neighbor(x, y))
+      // remove cells that are already rivers
+      .filter(([nx, ny]) => regionalRiverMap.get(nx, ny) === 0)
       // get height of neighbors
       .map(([nx, ny]) => [nx, ny, regionalHeightMap.get(nx, ny)])
-      // remove neighbors off edge of map and heighbors lower than current node
-      .filter(item => item[2] && item[2] > height)
-      // remove cells that are already rivers
-      .filter(item => regionalRiverMap.get(x, y) === 0)
+      // remove neighbors off edge of map
+      // remove heighbors lower than current node
+      .filter(item => item[2] && item[2] >= height && item[2] > sealevel)
       // sort cells by increasing height
       .orderBy(item => item[2], ['ASC'])
       // decide how many branches to take
       .slice(0, numBranches)
       // create children nodes
       .forEach((item) => {
-        console.log('making child');
-        const nextNode = new TreeNode(item);
+        const nextNode = new TreeNode({ x: item[0], y: item[1], height: item[2] });
         node.addChild(nextNode);
         // continue river algorithm at this next cell
-        riverStep(node);
+        riverStep(nextNode);
       })
   }
-  riverSourceNodes.forEach(riverStep);
+  riverSourceNodes.forEach(node => {
+    riverStep(node);
+  });
+  // riverSourceNodes = riverSourceNodes.filter(node => node.children.length > 0);
   console.log(riverSourceNodes);
+
+  worldRiverMap = ndarray(new Uint8ClampedArray(size * size), [size, size]);
+  fill(worldRiverMap, (x, y) => 0);
+  for (let x = 0; x < regionSize; x++) {
+    for (let y = 0; y < regionSize; y++) {
+      const hasRiver = regionalRiverMap.get(x, y);
+      if (hasRiver) {
+        worldRiverMap.set(
+          Math.floor(x / zoomLevel),
+          Math.floor(y / zoomLevel),
+          1
+        );
+      }
+    }
+  }
 
   console.groupEnd();
   return {
     worldHeightMap: worldHeightMap.data.slice(),
-    regionalRiverMap: regionalRiverMap.data.slice(),
+    worldRiverMap: worldRiverMap.data.slice(),
   };
 }
 

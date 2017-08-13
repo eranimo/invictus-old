@@ -23,6 +23,7 @@ async function runWorker(worker: any, data: any) {
 export interface MapSegmentData {
   heightmap?: ndarray,
   radiation?: ndarray,
+  rivermap?: ndarray,
   rainfall?: ndarray,
   biome?: ndarray,
   level?: any,
@@ -162,9 +163,10 @@ export default class MapManager {
     console.log('init map');
     const result: any = await this.mapGen.generate();
     const { size } = this.gameMap.settings;
-    const converted = ndarray(result.worldHeightMap, [size, size]);
-    this.gameMap.store.world.heightmap = converted;
-    return converted;
+    console.log('result', result);
+    this.gameMap.store.world.heightmap = ndarray(result.worldHeightMap, [size, size]);
+    this.gameMap.store.world.rivermap = ndarray(result.worldRiverMap, [size, size]);
+    return this.gameMap.store.world;
   }
 
   generateChunk(chunk: Phaser.Point) {
