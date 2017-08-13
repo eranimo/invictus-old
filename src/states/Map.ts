@@ -70,7 +70,6 @@ export default class Map extends State {
 
     this.mapManager = new MapManager();
     (<any>window).manager = this.mapManager;
-    this.create();
   }
 
   create() {
