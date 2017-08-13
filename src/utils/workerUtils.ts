@@ -43,7 +43,9 @@ export class PromiseWorker {
     return new Promise((resolve, reject) => {
       this.callbacks[messageID] = (error, result) => {
         if (error) {
-          return reject(new Error(error.message));
+          const errorObj = new Error(error.message);
+          errorObj.stack = error.stack;
+          return reject(errorObj);
         }
         resolve(result);
       }
@@ -55,7 +57,10 @@ export class PromiseWorker {
 export function registerPromiseWorker(callback: (message: any) => Promise<any>) {
   function postOutgoingMessage(event, id: number, error?, result?) {
     if (error) {
-      (self as any).postMessage([id, { message: error.message }]);
+      (self as any).postMessage([id, {
+        message: error.message,
+        stack: error.stack,
+      }]);
     } else {
       (self as any).postMessage([id, null, result])
     }
@@ -86,7 +91,6 @@ export function registerPromiseWorker(callback: (message: any) => Promise<any>) 
     if (!event.data) {
       return;
     }
-    console.log(event.data);
     const [id, payload] = event.data;
     handleIncomingMessage(event, id, payload);
   }
