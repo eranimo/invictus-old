@@ -26,18 +26,26 @@ This step generates a world heightmap at a higher zoom level to determine where 
 ### Step 2: Rivers
 Generate rivers by transfering water from source cells downhill.
 
-- decide a number of river source cells at the coast (coast as defined by world map)
+- decide a number of river source cells on land (land defined by world map)
   - generate height at all source cells in the regional map
-      drop if regional height is below sea level
 - river data structure is a tree of cell nodes
+- cell nodes can be either river or lake
 - **river** algorithm:
   - generate height at all neighbors
-  - maintain distance from coast of all cells
-  - if we have neighbors above sea level & above the last cell:
-    - mark *i* of the highest neighboring cells as a river (high to low)
-      where *i* is a percentage chance that increases as the distance from the coast increases
-      (this creates river tributaries)
-    - continue flow algorithm at next cells
+  - if we have neighbors above sea level:
+    - if we have neighbors below the last cell:
+      - mark *i* of the lowest neighboring cells as a river (high to low)
+        where *i* is a percentage chance that increases as the distance from the coast increases
+        (this creates river tributaries)
+      - continue river algorithm at next cell(s)
+    - form a lake:
+      (1) current water level = height of last river node
+          last iteration cells = new Set()
+      (2) do a flood-fill at current location for all cells below current water level
+          mark these as lakes
+      (3) if any cell in this iteration has a lower height than the last, this cell is a spill
+          end the algorithm if one is found
+      (4) raise water level and repeat (1)
   - else:
     - end the river
 
